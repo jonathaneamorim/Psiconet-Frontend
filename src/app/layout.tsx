@@ -1,5 +1,12 @@
 import { sharedMetadata } from "./shared-metadata";
+import { Raleway } from 'next/font/google';
 import "./globals.css";
+
+const raleway = Raleway({
+  subsets: ['latin'],
+  weight: ['600'],
+  variable: '--font-raleway',
+});
 
 export const metadata = sharedMetadata;
 
@@ -10,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br">
-      <body>
+      <body className={raleway.variable}>
         {children}
       </body>
     </html>
