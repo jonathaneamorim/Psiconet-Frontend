@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Button } from "./Button";
+import { Button } from "../Atoms/Button";
 import { useRouter, usePathname } from "next/navigation";
 
 export function Header() {
