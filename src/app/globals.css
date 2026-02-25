@@ -1,12 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #4A90E2;
-  --foreground: #000000;
+  --primary: #4A90E2;
   --secondary: #FFFFFF;
+  --tertiary: #000000;
+
+  --primary-hover: #357ABD;
+  --secondary-hover: #E5E5E5;
+  --tertiary-hover: #1A1A1A;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--primary);
+  color: var(--tertiary);
+  font-family: var(--font-raleway);
 }
