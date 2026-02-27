@@ -18,7 +18,9 @@ export function InputLabel({ fieldName, htmlFor, inputType, required, labelStyle
             </label>
 
             <input 
-                id={htmlFor} type={inputType || "text"} 
+                id={htmlFor} 
+                type={inputType || "text"} 
+                name={htmlFor}
                 className={`border text-heading text-sm rounded-lg block w-full px-3 py-2.5 shadow-xs placeholder:text-body ${inputStyle || ''}`} 
                 required={!!required} 
                 placeholder={placeholder}/>
