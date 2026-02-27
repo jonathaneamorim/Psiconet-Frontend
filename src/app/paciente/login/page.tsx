@@ -8,7 +8,7 @@ export default function PacienteLogin() {
                 <div className="flex-1 flex flex-col pt-10 h-full relative z-10">
                     <Header />
                     <main className="flex-1 flex items-center justify-center p-2">
-                        <FormLogin loginType="paciente" />
+                        <FormLogin loginType="Paciente" />
                     </main>
                 </div>
             </div>
