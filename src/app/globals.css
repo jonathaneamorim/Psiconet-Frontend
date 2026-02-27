@@ -11,7 +11,7 @@
 }
 
 body {
-  background: var(--primary);
+  background: radial-gradient(circle, var(--primary) 0%, var(--primary-hover) 100%);
   color: var(--tertiary);
   font-family: var(--font-raleway);
 }
