@@ -11,8 +11,9 @@ export function FormLogin({loginType}: {loginType: string}) {
     const [errorMessage, setErrorMessage] = useState("");
     const type = loginType.toLocaleLowerCase().trim() as 'admin' | 'psicologo' | 'paciente';
     const router = useRouter();
+    const [view, setView] = useState<'login' | 'recover'>('login');
 
-    const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleLogin = async (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault(); 
 
         const formData = new FormData(e.currentTarget);
@@ -30,6 +31,32 @@ export function FormLogin({loginType}: {loginType: string}) {
             toast.success("Usuário logado!", { id: toastId });
             router.push(result.redirectTo);
         }
+    }
+
+    const handleRecover = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        toast.success(`Link de recuperação enviado para o e-mail do ${loginType}!`);
+        setView('login');
+    }
+
+    if (view === 'recover') {
+        return (
+            <div className="w-full bg-[var(--secondary)] px-5 py-5 rounded-3xl shadow-md flex justify-center align-center flex-col gap-6 text-center">
+                <h2 className="text-2xl">Recuperar Senha</h2>
+                <p className="text-sm text-gray-500">Digite seu e-mail para receber as instruções de acesso para {loginType}.</p>
+                
+                <form onSubmit={handleRecover} className="flex flex-col gap-6">
+                    <InputLabel fieldName="Email" htmlFor="emailRecover" inputType="email" />
+                    
+                    <div className="flex flex-col gap-3">
+                        <Button variant="tertiary" children="Enviar Link" type="submit" />
+                        <button type="button" onClick={() => setView('login')} className="text-sm italic cursor-pointer">
+                            Voltar para o login
+                        </button>
+                    </div>
+                </form>
+            </div>
+        );
     }
 
     return (
@@ -52,8 +79,10 @@ export function FormLogin({loginType}: {loginType: string}) {
                             <label htmlFor="keeploggedin">Manter login</label>
                         </div>
                         <div className="flex flex-col whitespace-nowrap">
-                            <a href="/" className="text-base italic">Ainda não possui cadastro?</a>
-                            <a href="/" className="text-base italic">Esqueceu a senha?</a>
+                            <a href={`/${type}/cadastro`} className="text-base italic">Ainda não possui cadastro?</a>
+                            <button type="button" onClick={() => setView('recover')} className="text-base italic cursor-pointer text-center">
+                                Esqueceu a senha?
+                            </button>
                         </div>
                     </div>
                 }
