@@ -8,15 +8,15 @@ export const sharedMetadata: Metadata = {
   robots: "index, follow",
   icons: {
     icon: [
-      { url: 'siteIcons/favicon.ico', sizes: 'any' },
-      { url: 'siteIcons/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
-      { url: 'siteIcons/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
-      { url: 'siteIcons/android-chrome-192x192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/siteIcons/favicon.ico', sizes: 'any' },
+      { url: '/siteIcons/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/siteIcons/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/siteIcons/android-chrome-192x192.png', type: 'image/png', sizes: '192x192' },
     ],
-      shortcut: ['siteIcons/favicon.ico'],
+      shortcut: ['/siteIcons/favicon.ico'],
       apple: [
-        { url: 'siteIcons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+        { url: '/siteIcons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
       ],
     },
-  manifest: 'siteIcons/site.webmanifest',
+  manifest: '/siteIcons/site.webmanifest',
 };
