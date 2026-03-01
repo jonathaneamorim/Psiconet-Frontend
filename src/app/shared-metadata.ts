@@ -3,6 +3,9 @@ import { Metadata } from "next";
 export const sharedMetadata: Metadata = {
   title: "Psiconet",
   description: "Psiconet - Plataforma de Psicologia",
+  keywords: ["Psicologo", "Psicologia", "consulta"],
+  authors: [{ name: "Jonathan" }, {name: "Jefferson"}],
+  robots: "index, follow",
   icons: {
     icon: [
       { url: 'siteIcons/favicon.ico', sizes: 'any' },
