@@ -1,6 +1,8 @@
+import { useId } from "react";
+
 type Props = {
     fieldName: string;
-    htmlFor: string;
+    name: string;
     inputType?: string;
     required?: boolean;
     labelStyle?: string;
@@ -8,19 +10,22 @@ type Props = {
     placeholder?: string
 };
 
-export function InputLabel({ fieldName, htmlFor, inputType, required, labelStyle, inputStyle, placeholder }: Props) {
+export function InputLabel({ fieldName, name, inputType, required, labelStyle, inputStyle, placeholder }: Props) {
+
+    const id = useId();
+
     return (
          <div className="">
             <label 
-                htmlFor={htmlFor} 
+                htmlFor={id} 
                 className={`block text-lg italic font-medium text-heading ${labelStyle || ''}`}>
                     {fieldName}
             </label>
 
             <input 
-                id={htmlFor} 
+                id={id} 
                 type={inputType || "text"} 
-                name={htmlFor}
+                name={name}
                 className={`border text-heading text-sm rounded-lg block w-full px-3 py-2.5 shadow-xs placeholder:text-body ${inputStyle || ''}`} 
                 required={!!required} 
                 placeholder={placeholder}/>
