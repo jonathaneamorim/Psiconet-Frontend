@@ -19,12 +19,12 @@ export function FormRegister({registerType}: {registerType: string}) {
 
             <form onSubmit={handleRegister} className="flex flex-col gap-6">
                 <div className="flex flex-col gap-3">
-                    <InputLabel fieldName="Email" htmlFor="email" inputType="email" />
-                    <InputLabel fieldName="CPF" htmlFor="cpf" inputType="text" />
-                    {type === "psicologo" && <InputLabel fieldName="CRP" htmlFor="crp" inputType="text" />}
-                    <InputLabel fieldName="Data de Nascimento" htmlFor="datebirth" inputType="date" />
-                    <InputLabel fieldName="Senha" htmlFor="password" inputType="password" />
-                    <InputLabel fieldName="Repita a senha" htmlFor="repeatPassword" inputType="password" />
+                    <InputLabel fieldName="Email" name="email" inputType="email" />
+                    <InputLabel fieldName="CPF" name="cpf" inputType="text" />
+                    {type === "psicologo" && <InputLabel fieldName="CRP" name="crp" inputType="text" />}
+                    <InputLabel fieldName="Data de Nascimento" name="datebirth" inputType="date" />
+                    <InputLabel fieldName="Senha" name="password" inputType="password" />
+                    <InputLabel fieldName="Repita a senha" name="repeatPassword" inputType="password" />
                 </div>
 
                 {type !== "admin" && 

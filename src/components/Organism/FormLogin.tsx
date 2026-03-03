@@ -46,7 +46,7 @@ export function FormLogin({loginType}: {loginType: string}) {
                 <p className="text-sm text-gray-500">Digite seu e-mail para receber as instruções de acesso para {loginType}.</p>
                 
                 <form onSubmit={handleRecover} className="flex flex-col gap-6">
-                    <InputLabel fieldName="Email" htmlFor="emailRecover" inputType="email" />
+                    <InputLabel fieldName="Email" name="emailRecover" inputType="email" />
                     
                     <div className="flex flex-col gap-3">
                         <Button variant="tertiary" children="Enviar Link" type="submit" />
@@ -68,8 +68,8 @@ export function FormLogin({loginType}: {loginType: string}) {
 
             <form onSubmit={handleLogin} className="flex flex-col gap-6">
                 <div className="flex flex-col gap-3">
-                    <InputLabel fieldName="Email" htmlFor="email" inputType="email" />
-                    <InputLabel fieldName="Senha" htmlFor="password" inputType="password" />
+                    <InputLabel fieldName="Email" name="email" inputType="email" />
+                    <InputLabel fieldName="Senha" name="password" inputType="password" />
                 </div>
 
                 {type !== "admin" && 
