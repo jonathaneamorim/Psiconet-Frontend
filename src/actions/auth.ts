@@ -1,17 +1,27 @@
-'use server';
+"use server";
 
 import { cookies } from 'next/headers';
+import { jwtDecode } from 'jwt-decode';
 
 interface AuthResponse {
   token: string;
 }
 
-export async function loginAction(formData: FormData, role: 'admin' | 'psicologo' | 'paciente',  keepLoggedIn: boolean) {
-  const email = formData.get('email');
-  const password = formData.get('password');
+interface JwtPayload {
+  role: string; 
+  sub: string;
+}
+
+export async function loginAction(
+  formData: FormData, 
+  keepLoggedIn: boolean
+) {
+  const email = formData.get('email')?.toString().trim();
+  const password = formData.get('password')?.toString().trim();
+
   const tempoExpiracao = keepLoggedIn 
-    ? 24 * 60 * 60 * Number(process.env.KEEP_LOGGED_TIME)
-    : 60 * Number(process.env.ACESS_TIME);
+    ? 24 * 60 * 60 * (Number(process.env.KEEP_LOGGED_TIME) || 30)
+    : 60 * (Number(process.env.ACESS_TIME) || 60);
 
   if (!email || !password) {
     return { error: 'E-mail e senha são obrigatórios.' };
@@ -20,9 +30,7 @@ export async function loginAction(formData: FormData, role: 'admin' | 'psicologo
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
 
@@ -31,29 +39,26 @@ export async function loginAction(formData: FormData, role: 'admin' | 'psicologo
     }
 
     const data: AuthResponse = await response.json();
+    
+    // Decodifica e limpa a role (ex: ROLE_PSYCHOLOGIST -> psychologist)
+    const decoded = jwtDecode<JwtPayload>(data.token);
+    const userRoleFromToken = decoded.role.replace('ROLE_', '').toLowerCase();
 
-    // Salvar token nos cookies
-    (await cookies()).set('psiconet_token', data.token, {
+    const cookieStore = await cookies();
+
+    cookieStore.set('psiconet_token', data.token, {
       httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
       maxAge: tempoExpiracao,
     });
 
-    // Salva tipo de acesso nos cookies
-    (await cookies()).set('psiconet_role', role, {
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: tempoExpiracao,
-    });
+    // Redireciona dinamicamente para o dashboard correto com base na role do token
+    return { success: true, redirectTo: `/${userRoleFromToken}/dashboard` };
 
   } catch (error) {
     console.error('Erro ao conectar com a API:', error);
-    return { error: 'Erro interno no servidor. Tente novamente mais tarde.' };
+    return { error: 'Erro de conexão com o servidor.' };
   }
-
-  return { success: true, redirectTo: `/${role}/dashboard` };
 }
