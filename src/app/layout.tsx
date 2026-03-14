@@ -2,6 +2,9 @@ import { sharedMetadata } from "./shared-metadata";
 import { Raleway } from 'next/font/google';
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import { Header } from "@/components/Organism/Header";
+import { getUserRole } from "@/lib/auth";
+import NextTopLoader from "nextjs-toploader";
 
 const raleway = Raleway({
   subsets: ['latin'],
@@ -11,14 +14,23 @@ const raleway = Raleway({
 
 export const metadata = sharedMetadata;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const role = await getUserRole();
   return (
     <html lang="pt-br">
       <body className={raleway.variable}>
+
+        <NextTopLoader 
+          color="var(--primary)"
+          height={5} 
+          showSpinner={false}
+        />
+        
+        <Header userRole={role} />
         {children}
         <Toaster 
           position="top-right" 

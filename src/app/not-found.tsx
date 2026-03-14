@@ -4,7 +4,6 @@ import Link from "next/link";
 export default function NotFound() {
     return (
         <div>
-            <Header />
             <main className="bg-[var(--primary)] min-h-screen min-w-screen flex items-center justify-center">
                 <div className="flex flex-col items-center justify-center bg-slate-100 px-10 py-8 rounded-lg shadow-lg md:px-16 md:py-12">
                     <h1 className="text-6xl font-bold text-gray-800">404</h1>

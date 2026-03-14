@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
     return [
       {
         // temporario
-        source: '/login',
-        destination: '/',
+        source: '/pagina-source',
+        destination: '/pagina-destino',
         permanent: true, 
       },
     ];
