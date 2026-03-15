@@ -5,15 +5,27 @@ import { Button } from "../Atoms/Button";
 import { RoleEnum, translateRole } from "@/enums/RoleEnum";
 import { useState } from "react";
 import Link from "next/link";
+import toast from "react-hot-toast";
+import { registerAction } from "@/actions/register";
+import { useRouter } from "next/navigation";
 
 export function FormRegister() {
-    // Controla quem está sendo cadastrado. Inicia como PATIENT por padrão.
     const [role, setRole] = useState<RoleEnum.PATIENT | RoleEnum.PSYCHOLOGIST>(RoleEnum.PATIENT);
+    const router = useRouter();
 
     const handleRegister = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        
+        e.preventDefault(); 
         const formData = new FormData(e.currentTarget);
+        const toastId = toast.loading("Realizando cadastro...");
+
+        const result = await registerAction(formData);
+        
+        if(result?.error) {
+            toast.error(result.error, { id: toastId }); 
+        } else if (result?.success && result.redirectTo) {
+            toast.success("Usuário registrado com sucesso!", { id: toastId });
+            router.push(result.redirectTo);
+        }
     }
 
     return(
@@ -23,32 +35,32 @@ export function FormRegister() {
                 <p className="text-2xl">Cadastro</p>
             </div>
 
-            <div className="flex justify-center gap-8 py-2">
-                <label className="flex items-center gap-2 cursor-pointer text-lg">
-                    <input 
-                        type="radio" 
-                        name="userRole" 
-                        value={RoleEnum.PATIENT}
-                        checked={role === RoleEnum.PATIENT}
-                        onChange={() => setRole(RoleEnum.PATIENT)}
-                        className="w-5 h-5 accent-[var(--primary)] cursor-pointer"
-                    />
-                    Paciente
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-lg">
-                    <input 
-                        type="radio" 
-                        name="userRole" 
-                        value={RoleEnum.PSYCHOLOGIST}
-                        checked={role === RoleEnum.PSYCHOLOGIST}
-                        onChange={() => setRole(RoleEnum.PSYCHOLOGIST)}
-                        className="w-5 h-5 accent-[var(--primary)] cursor-pointer"
-                    />
-                    Psicólogo
-                </label>
-            </div>
-
             <form onSubmit={handleRegister} className="flex flex-col gap-6">
+                <div className="flex justify-center gap-8 py-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-lg">
+                        <input 
+                            type="radio" 
+                            name="userRole" 
+                            value={RoleEnum.PATIENT}
+                            checked={role === RoleEnum.PATIENT}
+                            onChange={() => setRole(RoleEnum.PATIENT)}
+                            className="w-5 h-5 accent-[var(--primary)] cursor-pointer"
+                        />
+                        Paciente
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-lg">
+                        <input 
+                            type="radio" 
+                            name="userRole" 
+                            value={RoleEnum.PSYCHOLOGIST}
+                            checked={role === RoleEnum.PSYCHOLOGIST}
+                            onChange={() => setRole(RoleEnum.PSYCHOLOGIST)}
+                            className="w-5 h-5 accent-[var(--primary)] cursor-pointer"
+                        />
+                        Psicólogo
+                    </label>
+                </div>
+
                 <div className="flex flex-col gap-3">
                     <InputLabel fieldName="Email" name="email" inputType="email" />
                     <InputLabel fieldName="CPF" name="cpf" inputType="text" />
@@ -70,7 +82,6 @@ export function FormRegister() {
                     </div>
                 </div>
 
-                {/* O botão atualiza o texto dinamicamente usando sua função translateRole */}
                 <Button variant="tertiary" type="submit">Cadastrar {translateRole(role)}</Button>
             </form>
         </div>
