@@ -81,7 +81,7 @@ export function FormLogin() {
                     </div>
                     
                     <div className="flex flex-col whitespace-nowrap">
-                        <Link href="/cadastro" className="text-base italic hover:text-[var(--primary)] transition-colors">
+                        <Link href="/register" className="text-base italic hover:text-[var(--primary)] transition-colors">
                             Ainda não possui cadastro?
                         </Link>
                         <button type="button" onClick={() => setView('recover')} className="text-base italic cursor-pointer text-center hover:text-[var(--primary)] transition-colors mt-1">
