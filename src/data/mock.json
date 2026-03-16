@@ -1,0 +1,32 @@
+{
+    "homepage": {
+        "firstSection": {
+            "title": "Bem-vindo ao Psiconet",
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
+            "buttonText": "Quem somos nós?",
+            "buttonLink": "/#utilities",
+            "imageSrc": "/homepage1.png"
+        },
+        "secondSection": {
+            "title": "Quem somos nós?",
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
+            "buttonText": "Quem somos nós?",
+            "buttonLink": "/about",
+            "imageSrc": "/homepage2.png"
+        },
+        "thirdSection": {
+            "block1" : {
+                "title": "Sou psicólogo",
+                "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
+                "buttonText": "Acesso psicólogo",
+                "buttonLink": "/login"
+            }, 
+            "block2" : {
+                "title": "Sou paciente",
+                "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
+                "buttonText": "Acesso paciente",
+                "buttonLink": "/login"
+            }
+        }
+    }
+}
