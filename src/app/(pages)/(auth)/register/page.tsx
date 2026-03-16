@@ -1,4 +1,4 @@
-import { FormRegister } from "@/components/Organism/FormRegister";
+import { FormRegister } from "@/components/templates/FormRegister";
 
 export default function Register() {
     return (
