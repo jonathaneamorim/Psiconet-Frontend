@@ -1,4 +1,3 @@
-import { Header } from "@/components/Organism/Header";
 import Link from "next/link";
 
 export default function NotFound() {
