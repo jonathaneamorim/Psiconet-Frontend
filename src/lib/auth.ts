@@ -1,19 +1,10 @@
 import { cookies } from 'next/headers';
 import { RoleEnum } from '@/enums/RoleEnum';
+import { COOKIE_TOKEN } from '@/constants/cookies';
+import { decodeRoleFromToken } from '@/lib/jwt';
 
 export async function getUserRole(): Promise<RoleEnum | null> {
-    const token = (await cookies()).get('psiconet_token')?.value;
-    
+    const token = (await cookies()).get(COOKIE_TOKEN)?.value;
     if (!token) return null;
-
-    try {
-        const payloadBase64 = token.split('.')[1];
-        const decodedPayload = JSON.parse(atob(payloadBase64));
-        
-        return decodedPayload.role
-            .replace('ROLE_', '')
-            .toLowerCase() as RoleEnum;
-    } catch (error) {
-        return null;
-    }
+    return decodeRoleFromToken(token);
 }

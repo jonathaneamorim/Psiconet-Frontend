@@ -2,26 +2,19 @@
 
 import { cookies } from 'next/headers';
 import { jwtDecode } from 'jwt-decode';
-
-interface AuthResponse {
-  token: string;
-}
-
-interface JwtPayload {
-  role: string; 
-  sub: string;
-}
+import { COOKIE_TOKEN, ROLE_PREFIX } from '@/constants/cookies';
+import type { AuthResponse, JwtPayload } from '@/types/auth';
 
 export async function loginAction(
-  formData: FormData, 
+  formData: FormData,
   keepLoggedIn: boolean
 ) {
   const email = formData.get('email')?.toString().trim();
   const password = formData.get('password')?.toString().trim();
 
-  const tempoExpiracao = keepLoggedIn 
+  const tempoExpiracao = keepLoggedIn
     ? 24 * 60 * 60 * (Number(process.env.KEEP_LOGGED_TIME) || 30)
-    : 60 * (Number(process.env.ACESS_TIME) || 60);
+    : 60 * (Number(process.env.ACCESS_TIME) || 60);
 
   if (!email || !password) {
     return { error: 'E-mail e senha são obrigatórios.' };
@@ -39,14 +32,14 @@ export async function loginAction(
     }
 
     const data: AuthResponse = await response.json();
-    
-    // Decodifica e limpa a role (ex: ROLE_PSYCHOLOGIST -> psychologist)
+
+    // Decodifica e limpa a role (ex: ROLE_PSYCHOLOGIST → psychologist)
     const decoded = jwtDecode<JwtPayload>(data.token);
-    const userRoleFromToken = decoded.role.replace('ROLE_', '').toLowerCase();
+    const userRoleFromToken = decoded.role.replace(ROLE_PREFIX, '').toLowerCase();
 
     const cookieStore = await cookies();
 
-    cookieStore.set('psiconet_token', data.token, {
+    cookieStore.set(COOKIE_TOKEN, data.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -54,7 +47,6 @@ export async function loginAction(
       maxAge: tempoExpiracao,
     });
 
-    // Redireciona dinamicamente para o dashboard correto com base na role do token
     return { success: true, redirectTo: `/${userRoleFromToken}/dashboard` };
 
   } catch (error) {
