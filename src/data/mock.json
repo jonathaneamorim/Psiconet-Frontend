@@ -15,18 +15,64 @@
             "imageSrc": "/homepage2.png"
         },
         "thirdSection": {
-            "block1" : {
+            "block1": {
                 "title": "Sou psicólogo",
                 "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
                 "buttonText": "Acesso psicólogo",
                 "buttonLink": "/login"
-            }, 
-            "block2" : {
+            },
+            "block2": {
                 "title": "Sou paciente",
                 "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
                 "buttonText": "Acesso paciente",
                 "buttonLink": "/login"
             }
+        },
+        "carouselSection": {
+            "title": "Latest Insights & Resources",
+            "text": "Swipe through our latest articles and resources to help you support your mental health journey.",
+            "items": [
+                {
+                    "title": "Understanding Cognitive Behavioral Therapy",
+                    "text": "Cognitive Behavioral Therapy (CBT) is an effective treatment for a wide range of mental health issues, including depression and anxiety."
+                },
+                {
+                    "title": "The Importance of Self-Care",
+                    "text": "Taking time for self-care is crucial for maintaining mental and emotional well-being. It can be as simple as a 10-minute daily meditation."
+                },
+                {
+                    "title": "Navigating Relationship Anxiety",
+                    "text": "Learn effective strategies to communicate better and address relationship anxiety with your partner."
+                },
+                {
+                    "title": "Mindfulness in Daily Life",
+                    "text": "Mindfulness helps us to remain present. Discover how implementing small mental exercises can reduce overall stress."
+                },
+                {
+                    "title": "Building Resilience",
+                    "text": "Life is full of challenges, but building resilience can help you bounce back stronger after adversity."
+                },
+                {
+                    "title": "Sleep Hygiene and Mental Health",
+                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
+                },
+                {
+                    "title": "Sleep Hygiene and Mental Health",
+                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
+                },
+                {
+                    "title": "Sleep Hygiene and Mental Health",
+                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
+                },
+                {
+                    "title": "Sleep Hygiene and Mental Health",
+                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
+                },
+                {
+                    "title": "Sleep Hygiene and Mental Health",
+                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
+                }
+            ]
         }
     }
 }
