@@ -3,6 +3,7 @@ import { Raleway } from 'next/font/google';
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { Header } from "@/components/Organism/Header";
+import { LateralMenu } from "@/components/Organism/LateralMenu";
 import { getUserRole } from "@/lib/auth";
 import NextTopLoader from "nextjs-toploader";
 
@@ -31,7 +32,10 @@ export default async function RootLayout({
         />
         
         <Header userRole={role} />
-        {children}
+        <LateralMenu userRole={role} />
+        <main className={role ? "lg:pl-16" : ""}>
+          {children}
+        </main>
         <Toaster 
           position="top-right" 
           toastOptions={{ 
