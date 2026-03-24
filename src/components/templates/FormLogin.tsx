@@ -12,25 +12,28 @@ export function FormLogin() {
     const router = useRouter();
     const [view, setView] = useState<'login' | 'recover'>('login');
     const [errorMessage, setErrorMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleLogin = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-        e.preventDefault(); 
+        e.preventDefault();
+        setLoading(true);
 
         const formData = new FormData(e.currentTarget);
         const keepLoggedIn = formData.get("keeploggedin") === "on";
-        
+
         setErrorMessage("");
         const toastId = toast.loading("Realizando login...");
 
         const result = await loginAction(formData, keepLoggedIn);
-        
-        if(result?.error) {
+
+        if (result?.error) {
             setErrorMessage(result.error);
-            toast.error(result.error, { id: toastId }); 
+            toast.error(result.error, { id: toastId });
         } else if (result?.success && result.redirectTo) {
             toast.success("Usuário logado!", { id: toastId });
             router.push(result.redirectTo);
         }
+        setLoading(false);
     }
 
     const handleRecover = async (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -46,10 +49,10 @@ export function FormLogin() {
                 <p className="text-sm text-gray-500">
                     Digite seu e-mail para receber as instruções de acesso à sua conta.
                 </p>
-                
+
                 <form onSubmit={handleRecover} className="flex flex-col gap-6">
                     <InputLabel fieldName="Email" name="emailRecover" inputType="email" />
-                    
+
                     <div className="flex flex-col gap-3">
                         <Button variant="tertiary" type="submit">Enviar Link</Button>
                         <button type="button" onClick={() => setView('login')} className="text-sm italic cursor-pointer">
@@ -79,7 +82,7 @@ export function FormLogin() {
                         <input className="w-4" type="checkbox" name="keeploggedin" id="keeploggedin" />
                         <label htmlFor="keeploggedin">Manter login</label>
                     </div>
-                    
+
                     <div className="flex flex-col whitespace-nowrap">
                         <Link href="/register" className="text-base italic hover:text-[var(--primary)] transition-colors">
                             Ainda não possui cadastro?
@@ -90,7 +93,7 @@ export function FormLogin() {
                     </div>
                 </div>
 
-                <Button variant="tertiary" type="submit">Entrar</Button>
+                <Button variant="tertiary" type="submit" disabled={loading}>{loading ? 'Entrando ...' : 'Entrar'}</Button>
             </form>
         </div>
     );
