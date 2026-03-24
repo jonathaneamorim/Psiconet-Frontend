@@ -1,6 +1,7 @@
 "use server";
 
 import { RoleEnum } from "@/enums/RoleEnum";
+import { API_URL } from '@/constants/api';
 import { ROUTES } from "@/config/routes";
 
 export async function registerAction(formData: FormData) {
@@ -37,7 +38,7 @@ export async function registerAction(formData: FormData) {
     };
 
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+        const response = await fetch(`${API_URL}${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

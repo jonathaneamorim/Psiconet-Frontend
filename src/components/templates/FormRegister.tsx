@@ -11,24 +11,27 @@ import { useRouter } from "next/navigation";
 
 export function FormRegister() {
     const [role, setRole] = useState<RoleEnum.PATIENT | RoleEnum.PSYCHOLOGIST>(RoleEnum.PATIENT);
+    const [loading, setLoading] = useState(false);
     const router = useRouter();
 
     const handleRegister = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-        e.preventDefault(); 
+        e.preventDefault();
+        setLoading(true);
         const formData = new FormData(e.currentTarget);
         const toastId = toast.loading("Realizando cadastro...");
 
         const result = await registerAction(formData);
-        
-        if(result?.error) {
-            toast.error(result.error, { id: toastId }); 
+
+        if (result?.error) {
+            toast.error(result.error, { id: toastId });
         } else if (result?.success && result.redirectTo) {
             toast.success("Usuário registrado com sucesso!", { id: toastId });
             router.push(result.redirectTo);
         }
+        setLoading(false);
     }
 
-    return(
+    return (
         <div className="w-full bg-[var(--secondary)] px-5 py-5 rounded-3xl shadow-md flex justify-center align-center flex-col gap-6">
             <div className="w-full align-center justify-center flex flex-col text-center">
                 <h1 className="text-4xl">Psiconet</h1>
@@ -38,9 +41,9 @@ export function FormRegister() {
             <form onSubmit={handleRegister} className="flex flex-col gap-6">
                 <div className="flex justify-center gap-8 py-2">
                     <label className="flex items-center gap-2 cursor-pointer text-lg">
-                        <input 
-                            type="radio" 
-                            name="userRole" 
+                        <input
+                            type="radio"
+                            name="userRole"
                             value={RoleEnum.PATIENT}
                             checked={role === RoleEnum.PATIENT}
                             onChange={() => setRole(RoleEnum.PATIENT)}
@@ -49,9 +52,9 @@ export function FormRegister() {
                         Paciente
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer text-lg">
-                        <input 
-                            type="radio" 
-                            name="userRole" 
+                        <input
+                            type="radio"
+                            name="userRole"
                             value={RoleEnum.PSYCHOLOGIST}
                             checked={role === RoleEnum.PSYCHOLOGIST}
                             onChange={() => setRole(RoleEnum.PSYCHOLOGIST)}
@@ -64,11 +67,11 @@ export function FormRegister() {
                 <div className="flex flex-col gap-3">
                     <InputLabel fieldName="Email" name="email" inputType="email" />
                     <InputLabel fieldName="CPF" name="cpf" inputType="text" />
-                    
+
                     {role === RoleEnum.PSYCHOLOGIST && (
                         <InputLabel fieldName="CRP" name="crp" inputType="text" />
                     )}
-                    
+
                     <InputLabel fieldName="Data de Nascimento" name="datebirth" inputType="date" />
                     <InputLabel fieldName="Senha" name="password" inputType="password" />
                     <InputLabel fieldName="Repita a senha" name="repeatPassword" inputType="password" />
@@ -82,7 +85,7 @@ export function FormRegister() {
                     </div>
                 </div>
 
-                <Button variant="tertiary" type="submit">Cadastrar {translateRole(role)}</Button>
+                <Button variant="tertiary" type="submit" disabled={loading}>{loading ? 'Cadastrando...' : 'Cadastrar ' + translateRole(role)}</Button>
             </form>
         </div>
     );

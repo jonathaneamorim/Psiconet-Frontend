@@ -2,7 +2,9 @@
 
 import { cookies } from 'next/headers';
 import { jwtDecode } from 'jwt-decode';
+import { API_URL } from '@/constants/api';
 import { COOKIE_TOKEN, ROLE_PREFIX } from '@/constants/cookies';
+import { ACCESS_TIME_MINUTES, KEEP_LOGGED_TIME_DAYS } from '@/constants/auth';
 import type { AuthResponse, JwtPayload } from '@/types/auth';
 
 export async function loginAction(
@@ -13,15 +15,15 @@ export async function loginAction(
   const password = formData.get('password')?.toString().trim();
 
   const tempoExpiracao = keepLoggedIn
-    ? 24 * 60 * 60 * (Number(process.env.KEEP_LOGGED_TIME) || 30)
-    : 60 * (Number(process.env.ACCESS_TIME) || 60);
+    ? 24 * 60 * 60 * KEEP_LOGGED_TIME_DAYS
+    : 60 * ACCESS_TIME_MINUTES;
 
   if (!email || !password) {
     return { error: 'E-mail e senha são obrigatórios.' };
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+    const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
