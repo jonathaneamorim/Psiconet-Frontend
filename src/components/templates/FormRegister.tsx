@@ -12,17 +12,41 @@ import { useRouter } from "next/navigation";
 export function FormRegister() {
     const [role, setRole] = useState<RoleEnum.PATIENT | RoleEnum.PSYCHOLOGIST>(RoleEnum.PATIENT);
     const [loading, setLoading] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const router = useRouter();
+
+    const clearFieldError = (field: string) => {
+        setFieldErrors((prev) => {
+            if (!prev[field]) return prev;
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+    };
 
     const handleRegister = async (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setLoading(true);
+
         const formData = new FormData(e.currentTarget);
+        const password = formData.get("password")?.toString() ?? "";
+        const repeatPassword = formData.get("repeatPassword")?.toString() ?? "";
+        const passwordMismatch = password !== repeatPassword;
+
+        setLoading(true);
         const toastId = toast.loading("Realizando cadastro...");
 
         const result = await registerAction(formData);
 
-        if (result?.error) {
+        const backendFields = result?.fields ?? {};
+        const mergedErrors = {
+            ...backendFields,
+            ...(passwordMismatch && { repeatPassword: "As senhas não coincidem." }),
+        };
+
+        if (Object.keys(mergedErrors).length > 0) {
+            setFieldErrors(mergedErrors);
+            toast.error(result?.error || "Corrija os campos destacados.", { id: toastId });
+        } else if (result?.error) {
             toast.error(result.error, { id: toastId });
         } else if (result?.success && result.redirectTo) {
             toast.success("Usuário registrado com sucesso!", { id: toastId });
@@ -65,16 +89,52 @@ export function FormRegister() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                    <InputLabel fieldName="Email" name="email" inputType="email" />
-                    <InputLabel fieldName="CPF" name="cpf" inputType="text" />
+                    <InputLabel 
+                        fieldName="Email" 
+                        name="email" 
+                        inputType="email" 
+                        error={fieldErrors["email"]}
+                        onClearError={() => clearFieldError("email")}
+                    />
+                    <InputLabel 
+                        fieldName="CPF" 
+                        name="cpf" 
+                        inputType="text" 
+                        error={fieldErrors["cpf"]}
+                        onClearError={() => clearFieldError("cpf")}
+                    />
 
                     {role === RoleEnum.PSYCHOLOGIST && (
-                        <InputLabel fieldName="CRP" name="crp" inputType="text" />
+                        <InputLabel 
+                            fieldName="CRP" 
+                            name="crp" 
+                            inputType="text" 
+                            error={fieldErrors["crp"]}
+                            onClearError={() => clearFieldError("crp")}
+                        />
                     )}
 
-                    <InputLabel fieldName="Data de Nascimento" name="datebirth" inputType="date" />
-                    <InputLabel fieldName="Senha" name="password" inputType="password" />
-                    <InputLabel fieldName="Repita a senha" name="repeatPassword" inputType="password" />
+                    <InputLabel 
+                        fieldName="Data de Nascimento" 
+                        name="birthDate" 
+                        inputType="date" 
+                        error={fieldErrors["birthDate"]}
+                        onClearError={() => clearFieldError("birthDate")}
+                    />
+                    <InputLabel 
+                        fieldName="Senha" 
+                        name="password" 
+                        inputType="password" 
+                        error={fieldErrors["password"]}
+                        onClearError={() => clearFieldError("password")}
+                    />
+                    <InputLabel 
+                        fieldName="Repita a senha" 
+                        name="repeatPassword" 
+                        inputType="password" 
+                        error={fieldErrors["repeatPassword"]}
+                        onClearError={() => clearFieldError("repeatPassword")}
+                    />
                 </div>
 
                 <div className="flex flex-col text-center w-full gap-4">
