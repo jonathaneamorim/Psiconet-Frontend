@@ -16,7 +16,6 @@ export function Header({ userRole }: HeaderProps) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
