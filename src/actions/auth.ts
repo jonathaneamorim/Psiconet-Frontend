@@ -34,8 +34,6 @@ export async function loginAction(
     }
 
     const data: AuthResponse = await response.json();
-
-    // Decodifica e limpa a role (ex: ROLE_PSYCHOLOGIST → psychologist)
     const decoded = jwtDecode<JwtPayload>(data.token);
     const userRoleFromToken = decoded.role.replace(ROLE_PREFIX, '').toLowerCase();
 
