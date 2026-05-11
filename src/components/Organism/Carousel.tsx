@@ -49,7 +49,7 @@ export const Carousel: React.FC<CarouselProps> = ({
             spaceBetween: 24,
           },
         }}
-        className="pb-16 !overflow-visible md:!overflow-hidden" // Padding to make room for navigation arrows at bottom
+        className="pb-16 !overflow-visible md:!overflow-hidden"
       >
         {items.map((item, index) => (
           <SwiperSlide key={index} className="flex" style={{ height: 'auto' }}>
