@@ -1,58 +1,63 @@
 "use server";
 
-import { RoleEnum } from "@/enums/RoleEnum";
-import { API_URL } from '@/constants/api';
+import { API_URL } from "@/constants/api";
 import { ROUTES } from "@/config/routes";
+import { RoleEnum } from "@/enums/RoleEnum";
 
-export async function registerAction(formData: FormData) {
-    const role = formData.get('userRole') as RoleEnum;
-    const email = formData.get('email')?.toString().trim();
-    const cpf = formData.get('cpf')?.toString().trim();
-    const datebirth = formData.get('datebirth')?.toString().trim();
-    const password = formData.get('password')?.toString();
-    const repeatPassword = formData.get('repeatPassword')?.toString();
-    const crp = formData.get('crp')?.toString().trim();
+type RegisterResponse = {
+    success?: boolean;
+    redirectTo?: string;
+    error?: string;
+    fields?: Record<string, string>;
+};
 
-    if (!email || !cpf || !datebirth || !password || !role) {
-        return { error: 'Preencha todos os campos obrigatórios.' };
-    }
+export async function registerAction(formData: FormData): Promise<RegisterResponse> {
+    const role = formData.get("userRole") as RoleEnum;
 
-    if (role === RoleEnum.PSYCHOLOGIST && !crp) {
-        return { error: 'O CRP é obrigatório para psicólogos.' };
-    }
-
-    if (password !== repeatPassword) {
-        return { error: 'As senhas não coincidem.' };
-    }
-
-    const endpoint = role === RoleEnum.PATIENT
-        ? '/auth/register/patient'
-        : '/auth/register/psychologist';
+    const endpoint =
+        role === RoleEnum.PATIENT
+            ? "/auth/register/patient"
+            : "/auth/register/psychologist";
 
     const payload = {
-        email,
-        cpf,
-        datebirth,
-        password,
-        ...(role === RoleEnum.PSYCHOLOGIST && { crp })
+        email: formData.get("email")?.toString().trim(),
+        cpf: formData.get("cpf")?.toString().trim(),
+        birthDate: formData.get("birthDate")?.toString().trim(),
+        password: formData.get("password")?.toString(),
+        ...(role === RoleEnum.PSYCHOLOGIST && {
+            crp: formData.get("crp")?.toString().trim(),
+        }),
     };
 
     try {
         const response = await fetch(`${API_URL}${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            return { error: errorData?.message || 'Erro ao realizar o cadastro. Verifique os dados.' };
+            return {
+                error:
+                    errorData?.message ||
+                    "Erro ao realizar cadastro.",
+                fields:
+                    errorData?.errors || {},
+            };
         }
-
-        return { success: true, redirectTo: ROUTES.LOGIN };
+        return {
+            success: true,
+            redirectTo: ROUTES.LOGIN,
+        };
 
     } catch (error) {
-        console.error('Erro ao conectar com a API de cadastro:', error);
-        return { error: 'Erro de conexão com o servidor.' };
+        console.error("Erro ao conectar com a API:", error);
+
+        return {
+            error: "Erro de conexão com o servidor.",
+        };
     }
 }
