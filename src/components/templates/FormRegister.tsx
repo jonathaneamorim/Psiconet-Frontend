@@ -1,6 +1,7 @@
 'use client';
 
 import { InputLabel } from "../Molecules/InputLabel";
+import { CpfInput } from "../Molecules/CpfInput";
 import { Button } from "../Atoms/Button";
 import { RoleEnum, translateRole } from "@/enums/RoleEnum";
 import { useState } from "react";
@@ -96,10 +97,7 @@ export function FormRegister() {
                         error={fieldErrors["email"]}
                         onClearError={() => clearFieldError("email")}
                     />
-                    <InputLabel 
-                        fieldName="CPF" 
-                        name="cpf" 
-                        inputType="text" 
+                    <CpfInput
                         error={fieldErrors["cpf"]}
                         onClearError={() => clearFieldError("cpf")}
                     />

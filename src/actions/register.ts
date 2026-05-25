@@ -3,6 +3,7 @@
 import { API_URL } from "@/constants/api";
 import { ROUTES } from "@/config/routes";
 import { RoleEnum } from "@/enums/RoleEnum";
+import { normalizeCpf } from "@/lib/cpf";
 
 type RegisterResponse = {
     success?: boolean;
@@ -21,7 +22,7 @@ export async function registerAction(formData: FormData): Promise<RegisterRespon
 
     const payload = {
         email: formData.get("email")?.toString().trim(),
-        cpf: formData.get("cpf")?.toString().trim(),
+        cpf: normalizeCpf(formData.get("cpf")?.toString() ?? ''),
         birthDate: formData.get("birthDate")?.toString().trim(),
         password: formData.get("password")?.toString(),
         ...(role === RoleEnum.PSYCHOLOGIST && {

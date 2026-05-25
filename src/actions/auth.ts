@@ -1,10 +1,9 @@
 "use server";
 
-import { cookies } from 'next/headers';
 import { jwtDecode } from 'jwt-decode';
 import { API_URL } from '@/constants/api';
-import { COOKIE_TOKEN, ROLE_PREFIX } from '@/constants/cookies';
-import { ACCESS_TIME_MINUTES, KEEP_LOGGED_TIME_DAYS } from '@/constants/auth';
+import { ROLE_PREFIX } from '@/constants/cookies';
+import { cookieService } from '@/services/cookieService';
 import type { AuthResponse, JwtPayload } from '@/types/auth';
 
 export async function loginAction(
@@ -13,10 +12,6 @@ export async function loginAction(
 ) {
   const email = formData.get('email')?.toString().trim();
   const password = formData.get('password')?.toString().trim();
-
-  const tempoExpiracao = keepLoggedIn
-    ? 24 * 60 * 60 * KEEP_LOGGED_TIME_DAYS
-    : 60 * ACCESS_TIME_MINUTES;
 
   if (!email || !password) {
     return { error: 'E-mail e senha são obrigatórios.' };
@@ -30,22 +25,17 @@ export async function loginAction(
     });
 
     if (!response.ok) {
-      return { error: 'Credenciais inválidas ou usuário não encontrado.' };
+      const errorData = await response.json().catch(() => null);
+      return {
+        error: errorData?.message || 'Credenciais inválidas ou usuário não encontrado.',
+      };
     }
 
     const data: AuthResponse = await response.json();
     const decoded = jwtDecode<JwtPayload>(data.token);
     const userRoleFromToken = decoded.role.replace(ROLE_PREFIX, '').toLowerCase();
 
-    const cookieStore = await cookies();
-
-    cookieStore.set(COOKIE_TOKEN, data.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: tempoExpiracao,
-    });
+    await cookieService.setAuthToken(data.token, keepLoggedIn);
 
     return { success: true, redirectTo: `/${userRoleFromToken}/dashboard` };
 

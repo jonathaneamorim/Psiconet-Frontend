@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "../Atoms/Button";
 import { RoleEnum } from "@/enums/RoleEnum";
 import { logoutAction } from "@/actions/logout";
+import { NAV_ITEMS } from "@/config/navigation";
 import toast from "react-hot-toast";
 
 interface HeaderProps {
@@ -35,6 +36,12 @@ export function Header({ userRole }: HeaderProps) {
 
     const isPatient = userRole === RoleEnum.PATIENT;
     const isPsychologist = userRole === RoleEnum.PSYCHOLOGIST;
+    const isAdmin = userRole === RoleEnum.ADMIN;
+
+    const roleLabel = isPatient ? 'Paciente' : isPsychologist ? 'Psicólogo' : 'Administrador';
+    const roleAccessLabel = isPatient ? 'Acesso Paciente' : isPsychologist ? 'Acesso Psicólogo' : 'Acesso Administrador';
+
+    const navItems = userRole ? (NAV_ITEMS[userRole] ?? []) : [];
 
     return (
         <header className="w-full h-18 bg-white/80 backdrop-blur-md fixed top-0 left-0 px-4 sm:px-8 z-50 border-b border-slate-200/60 shadow-sm transition-all">
@@ -93,7 +100,7 @@ export function Header({ userRole }: HeaderProps) {
                                 </div>
                                 <div className="flex flex-col items-start hidden sm:flex">
                                     <span className="text-sm font-semibold text-slate-700 leading-tight">Minha Conta</span>
-                                    <span className="text-xs text-slate-500 font-medium">{isPatient ? 'Paciente' : 'Psicólogo'}</span>
+                                    <span className="text-xs text-slate-500 font-medium">{roleLabel}</span>
                                 </div>
                                 <svg className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -104,7 +111,7 @@ export function Header({ userRole }: HeaderProps) {
                             <div className={`absolute right-0 mt-3 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden z-50 origin-top-right transition-all duration-200 ${isProfileOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}`}>
                                 <div className="p-4 border-b border-slate-50 bg-slate-50/50">
                                     <p className="text-sm font-medium text-slate-900 truncate">Sessão Ativa</p>
-                                    <p className="text-xs text-slate-500 truncate">{isPatient ? 'Acesso Paciente' : 'Acesso Psicólogo'}</p>
+                                    <p className="text-xs text-slate-500 truncate">{roleAccessLabel}</p>
                                 </div>
                                 <ul className="py-2 text-sm text-slate-600 font-medium">
                                     <li>
@@ -178,21 +185,37 @@ export function Header({ userRole }: HeaderProps) {
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold text-slate-800">Minha Conta</p>
-                                        <p className="text-xs text-slate-500">{isPatient ? 'Paciente' : 'Psicólogo'}</p>
+                                        <p className="text-xs text-slate-500">{roleLabel}</p>
                                     </div>
                                 </div>
 
                                 {/* Mobile Navigation */}
                                 <div className="flex flex-col gap-1">
                                     <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">Navegação</h3>
-                                    <Link href={`/${userRole}/dashboard`} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                                        Dashboard
-                                    </Link>
-                                    <Link href={isPsychologist ? "/psychologist/pacientes" : "/patient/consultas"} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                                        {isPsychologist ? 'Meus Pacientes' : 'Minhas Consultas'}
-                                    </Link>
+                                    {navItems.map((item) => {
+                                        if (item.comingSoon) {
+                                            return (
+                                                <div
+                                                    key={item.label}
+                                                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 cursor-not-allowed font-medium"
+                                                >
+                                                    <span className="w-5 h-5 flex-shrink-0">{item.icon}</span>
+                                                    <span>{item.label} <span className="text-xs font-normal">(Em breve)</span></span>
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <Link
+                                                key={item.label}
+                                                href={item.href}
+                                                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                <span className="w-5 h-5 flex-shrink-0 text-slate-400">{item.icon}</span>
+                                                {item.label}
+                                            </Link>
+                                        );
+                                    })}
                                 </div>
 
                                 <div className="h-px bg-slate-100 w-full my-1"></div>
