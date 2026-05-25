@@ -48,6 +48,19 @@ const IconSettings = (
   </svg>
 );
 
+const IconSearch = (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+  </svg>
+);
+
+const IconConnections = (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  </svg>
+);
+
 // ─── Configuração central de navegação ──────────────────────────────────────
 
 export const NAV_ITEMS: Record<RoleEnum, NavItem[]> = {
@@ -77,6 +90,16 @@ export const NAV_ITEMS: Record<RoleEnum, NavItem[]> = {
       comingSoon: true,
     },
     {
+      label: 'Buscar Pacientes',
+      href: ROUTES.PSYCHOLOGIST_SEARCH,
+      icon: IconSearch,
+    },
+    {
+      label: 'Conexões',
+      href: ROUTES.PSYCHOLOGIST_CONNECTIONS,
+      icon: IconConnections,
+    },
+    {
       label: 'Configurações',
       href: '#',
       icon: IconSettings,
@@ -95,6 +118,16 @@ export const NAV_ITEMS: Record<RoleEnum, NavItem[]> = {
       href: '#',
       icon: IconAppointments,
       comingSoon: true,
+    },
+    {
+      label: 'Buscar Psicólogos',
+      href: ROUTES.PATIENT_SEARCH,
+      icon: IconSearch,
+    },
+    {
+      label: 'Conexões',
+      href: ROUTES.PATIENT_CONNECTIONS,
+      icon: IconConnections,
     },
     {
       label: 'Configurações',

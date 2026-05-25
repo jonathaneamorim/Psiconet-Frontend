@@ -6,7 +6,7 @@
 
 ## O que é o Psiconet
 
-Psiconet é uma plataforma web de saúde mental que conecta **pacientes** a **psicólogos**. Possui um painel administrativo para gestão da plataforma. O **frontend** é um cliente web em **Next.js 15 (App Router)** que consome uma **API REST** construída em **Java/Spring Boot 3.3.5**.
+Psiconet é uma plataforma web de saúde mental que conecta **pacientes** a **psicólogos**. Possui um painel administrativo para gestão da plataforma. O **frontend** é um cliente web em **Next.js 16 (App Router)** que consome uma **API REST** construída em **Java/Spring Boot 3.3.5**.
 
 ---
 
@@ -16,12 +16,12 @@ Psiconet é uma plataforma web de saúde mental que conecta **pacientes** a **ps
 
 | Camada       | Tecnologia                                         |
 | ------------ | -------------------------------------------------- |
-| Framework    | Next.js 15 com App Router                          |
+| Framework    | Next.js 16 com App Router                          |
 | Linguagem    | TypeScript                                         |
 | Estilo       | CSS + Tailwind utility classes (globals.css)       |
 | Fonte        | Raleway (Google Fonts)                             |
 | Auth         | JWT armazenado em cookie httpOnly                  |
-| API          | REST (Spring Boot) — URL via `NEXT_PUBLIC_API_URL` |
+| API Client   | Fetch API nativa via `apiClient` centralizado      |
 | Testes       | Jest + Testing Library                             |
 | Toast        | react-hot-toast                                    |
 | Progress Bar | nextjs-toploader                                   |
@@ -41,95 +41,66 @@ Psiconet é uma plataforma web de saúde mental que conecta **pacientes** a **ps
 
 ---
 
-## Estrutura de Diretórios
+## Estrutura de Diretórios (Frontend `src/`)
 
-### Frontend (`src/`)
+Para detalhes mais profundos, consulte a pasta `/docs` na raiz do projeto.
 
 ```
 src/
-├── actions/            # Server Actions do Next.js
-│   ├── admin.ts        # getUsersAction, updateUserStatusAction, updateUserAction
-│   ├── auth.ts         # loginAction (POST /auth/login, seta cookie JWT)
-│   ├── logout.ts       # logoutAction (deleta cookie)
-│   └── register.ts     # registerAction (cadastro de paciente)
+├── actions/            # Server Actions do Next.js (Mutações e Buscas via apiClient)
+│   ├── admin.ts        
+│   ├── auth.ts         
+│   ├── connections.ts  
+│   ├── profile.ts      
+│   └── register.ts     
 │
 ├── app/                # Next.js App Router
 │   ├── layout.tsx      # Root layout: Header + LateralMenu globais
 │   ├── page.tsx        # Home pública (PresentationSection + CarouselSection)
 │   ├── globals.css     # CSS global e variáveis de tema
 │   └── (pages)/
-│       ├── (auth)/     # Grupo sem URL — páginas de autenticação
-│       │   ├── layout.tsx      # Layout centralizado (max-w-500px)
-│       │   ├── login/page.tsx
-│       │   └── register/page.tsx
+│       ├── (auth)/     # Grupo sem URL — páginas de autenticação (login, register)
 │       ├── about/
 │       ├── patient/            # Área privada do paciente
-│       │   └── dashboard/page.tsx
+│       │   ├── dashboard/
+│       │   ├── search/         
+│       │   ├── connections/    # Gestão de conexões do paciente
+│       │   ├── profile/[id]/   # Visualizar perfil de um psicólogo
+│       │   └── profile/        # Visualizar próprio perfil
 │       ├── psychologist/       # Área privada do psicólogo
-│       │   └── dashboard/page.tsx
+│       │   ├── dashboard/
+│       │   ├── search/         
+│       │   ├── connections/    # Gestão de conexões do psicólogo
+│       │   ├── profile/[id]/   # Visualizar perfil de um paciente
+│       │   └── profile/        # Visualizar próprio perfil
 │       └── admin/              # Área privada do administrador
-│           ├── dashboard/page.tsx
-│           └── users/page.tsx  # Listagem paginada de usuários
+│           ├── dashboard/
+│           └── users/          # Listagem paginada de usuários
 │
-├── components/         # Atomic Design
-│   ├── Atoms/
-│   │   ├── Button.tsx
-│   │   ├── UserStatusBadge.tsx  # Badge colorido de status (ACTIVE, INACTIVE, etc.)
-│   │   └── UserRoleBadge.tsx    # Badge colorido de role (ADMIN, PSYCHOLOGIST, PATIENT)
-│   ├── Molecules/
-│   │   ├── InputLabel.tsx
-│   │   ├── CarouselCard.tsx
-│   │   ├── TextBlock.tsx
-│   │   ├── EditUserModal.tsx  # Modal de edição (PUT /admin/users/{id})
-│   │   ├── ConfirmModal.tsx   # Modal de confirmação reutilizável
-│   │   └── Pagination.tsx     # Paginação URL-driven (Link do Next.js)
-│   ├── Organism/
-│   │   ├── Header.tsx          # Header global (adapta por role)
-│   │   ├── LateralMenu.tsx     # Sidebar global (adapta por role)
-│   │   ├── UsersTable.tsx      # Tabela de usuários (desktop) + cards (mobile)
-│   │   ├── Carousel.tsx
-│   │   ├── CarouselSection.tsx
-│   │   └── PresentationSection.tsx
-│   └── templates/
-│       ├── FormLogin.tsx
-│       └── FormRegister.tsx
-│
-├── config/
-│   └── routes.ts       # Constantes de URL (ROUTES, PUBLIC_ROUTES)
-│
-├── constants/
-│   ├── api.ts          # API_URL
-│   ├── auth.ts         # Tempos de sessão (minutos/dias)
-│   └── cookies.ts      # Nome do cookie e prefixo de role
-│
-├── enums/
-│   └── RoleEnum.ts     # ADMIN | PSYCHOLOGIST | PATIENT + translateRole()
-│
-├── lib/
-│   ├── auth.ts         # getUserRole() — lê cookie e decodifica JWT (server-side)
-│   └── jwt.ts          # decodeRoleFromToken() — pura, funciona no Edge Runtime
-│
-├── proxy.ts            # Middleware Next.js — proteção de rotas por role
-└── types/
-    └── auth.ts         # AuthResponse, JwtPayload
+├── components/         # Atomic Design (Atoms, Molecules, Organism, templates)
+├── config/             # Constantes de rotas e navegação centralizada
+├── constants/          # Constantes globais (Cookies, API_URL, timeouts)
+├── contexts/           # Contextos React (ex: ConnectionContext)
+├── data/               # Arquivos mock (ex: mock.json)
+├── enums/              # Enums TypeScript mapeados do Backend (ex: RoleEnum)
+├── hooks/              # Custom hooks client-side (ex: useConnectionActions)
+├── lib/                # Utilidades puras (auth cookies, cpf mask, jwt decode puro)
+├── services/           # Serviços externos e abstrações
+│   ├── api/apiClient.ts# Cliente HTTP centralizado para Server Actions
+│   └── cookieService.ts# Serviço de gerência de cookies HTTP-Only
+└── types/              # Tipos DTO e Interfaces estritas (AdminUser, PaginatedResponse)
 ```
 
-### Backend (`src/main/java/com/psiconet/`)
+---
 
-```
-com.psiconet/
-├── controllers/        # REST Endpoints (Auth, User, Admin, Psychologist)
-├── infra/              # Infraestrutura (Security, Exceptions, Config, Swagger)
-├── mapper/             # Interfaces MapStruct (DTO <-> Entity)
-├── model/
-│   ├── entities/       # Entidades JPA (Access, Clinical, Document, Financial, Profile)
-│   ├── dtos/           # DTOs (Auth, Admin, Profile, Access)
-│   └── enums/          # Enumerações (Roles, Statuses)
-├── repositories/       # Repositórios Spring Data JPA
-└── services/
-    ├── interfaces/     # Definições de serviço
-    └── implement/      # Implementações de serviço
-```
+## Documentação Extra (`/docs`)
+
+O repositório possui uma pasta `docs/` com detalhamentos avançados:
+- **Arquitetura**: Estruturas de pastas e decisões de design.
+- **Autenticação**: Fluxo JWT, edge middleware e validação de role.
+- **Componentes**: Guias de Atomic Design e boas práticas UI.
+- **Conexões**: O sistema de vínculo paciente-psicólogo (Context API + Optimistic Updates).
+- **Convenções**: Nomenclatura, TypeScript e regras de uso de Client vs Server components.
 
 ---
 
@@ -146,219 +117,56 @@ com.psiconet/
 | `Appointment`  | `agendamento`   | Sessão entre paciente e psicólogo                            |
 | `Connection`   | `conexao`       | Vínculo entre paciente e psicólogo (PENDING, ACCEPTED, etc.) |
 
-### Campos do `User`
-
-`id`, `email`, `cpf`, `password`, `role`, `status`, `fullName`, `phone`, `photoUrl`, `location`
-
-### Campos do `Psychologist`
-
-`id`, `usuario_id`, `crp`, `experienceTime`, `description` + relacionamento N:M com `Specialty`
-
 ---
 
 ## Sistema de Roles e Autenticação
 
 ### 3 tipos de acesso
 
-| Role          | Enum (Frontend)         | Enum (Backend) | URL Base          | Dashboard                 |
-| ------------- | ----------------------- | -------------- | ----------------- | ------------------------- |
-| Administrador | `RoleEnum.ADMIN`        | `ADMIN`        | `/admin/*`        | `/admin/dashboard`        |
-| Psicólogo     | `RoleEnum.PSYCHOLOGIST` | `PSYCHOLOGIST` | `/psychologist/*` | `/psychologist/dashboard` |
-| Paciente      | `RoleEnum.PATIENT`      | `PATIENT`      | `/patient/*`      | `/patient/dashboard`      |
+| Role          | Enum (Frontend)         | URL Base          | Dashboard                 |
+| ------------- | ----------------------- | ----------------- | ------------------------- |
+| Administrador | `RoleEnum.ADMIN`        | `/admin/*`        | `/admin/dashboard`        |
+| Psicólogo     | `RoleEnum.PSYCHOLOGIST` | `/psychologist/*` | `/psychologist/dashboard` |
+| Paciente      | `RoleEnum.PATIENT`      | `/patient/*`      | `/patient/dashboard`      |
 
 ### Fluxo de autenticação
-
-1. Usuário faz login via `loginAction` (`src/actions/auth.ts`)
-2. Backend retorna um JWT com `role: "ROLE_PATIENT"` (ou `ROLE_PSYCHOLOGIST`, `ROLE_ADMIN`)
-3. O token é armazenado em **cookie httpOnly** chamado `psiconet_token`
-4. O middleware (`src/proxy.ts`) intercepta todas as requisições:
-   - Sem token → redireciona para `/login`
-   - Token inválido → deleta cookie, redireciona para `/login`
-   - Usuário logado acessando página pública → redireciona para `/${userRole}/dashboard`
-   - Usuário tentando acessar rota de outro role → redireciona para seu dashboard
-5. O JWT é decodificado com `decodeRoleFromToken()` (sem biblioteca, puro base64)
-6. O role é exposto via `getUserRole()` no root layout para personalizar Header e LateralMenu
-
-### JWT payload esperado do backend
-
-```json
-{
-  "sub": "usuario@email.com",
-  "role": "ROLE_PATIENT"
-}
-```
-
-O prefixo `ROLE_` é removido e lowercased → vira `"patient"` (confere com `RoleEnum`).
+1. Usuário faz login (`actions/auth.ts`).
+2. Backend retorna um JWT.
+3. O token é salvo via `cookieService` (`psiconet_token`, httpOnly).
+4. O Next.js Middleware intercepta a navegação e utiliza a função nativa `decodeRoleFromToken` (`lib/jwt.ts`, sem biblitecas pesadas como jwt-decode) para descobrir a Role.
+5. Se não autenticado ou rota bloqueada, redireciona o usuário (`/login` ou dashboard correto).
+6. O token é ejetado nas requisições da Server Action de forma transparente pela biblioteca customizada `apiClient.ts`.
 
 ---
 
-## API Endpoints (Backend)
-
-### Autenticação (público)
-
-| Método | Endpoint                      | Descrição             |
-| ------ | ----------------------------- | --------------------- |
-| `POST` | `/auth/register/patient`      | Cadastro de paciente  |
-| `POST` | `/auth/register/psychologist` | Cadastro de psicólogo |
-| `POST` | `/auth/login`                 | Login — retorna JWT   |
-
-### Psicólogos
-
-| Método | Endpoint                                      | Descrição           |
-| ------ | --------------------------------------------- | ------------------- |
-| `GET`  | `/psychologists/search?name={name}&crp={crp}` | Busca de psicólogos |
-
-### Admin (requer `ROLE_ADMIN`)
-
-| Método  | Endpoint                   | Descrição                                                       |
-| ------- | -------------------------- | --------------------------------------------------------------- |
-| `GET`   | `/admin/users`             | Lista paginada de usuários (parâmetros: `page`, `size`, `sort`) |
-| `PATCH` | `/admin/users/{id}/status` | Atualiza apenas o status do usuário                             |
-| `PUT`   | `/admin/users/{id}`        | Atualiza `fullName`, `phone` e `status`                         |
-
-### Campos protegidos no Admin
-
-- **Editáveis:** `fullName`, `phone`, `status`
-- **Protegidos (nunca alteráveis via admin):** `id`, `email`, `cpf`, `role`, `createdAt`
-- **CPF:** exibido mascarado como `123.***.***-45` nas listagens
+## A Camada de API (`apiClient.ts`)
+Para não poluir as Server Actions, todo request HTTP é canalizado pelo `src/services/api/apiClient.ts`.
+- Injeta automaticamente os Headers necessários e o Token JWT.
+- Controla a política de Cache (`no-store` por padrão).
+- Lida centralizadamente com Parsing de Erros (`401`, `403`, `500`) fornecendo mensagens coerentes à UI (`ApiResult<T>`).
 
 ---
 
-## Tratamento de Erros (Backend)
+## Sistema de Conexões
 
-Gerenciado pelo `GlobalExceptionHandler`:
-
-| Status             | Situação                                   |
-| ------------------ | ------------------------------------------ |
-| `400 Bad Request`  | Erros de validação ou regras de negócio    |
-| `401 Unauthorized` | JWT ausente ou inválido                    |
-| `404 Not Found`    | Entidade não encontrada                    |
-| `409 Conflict`     | Dados duplicados (e-mail/CPF já existente) |
-
----
-
-## Rotas (src/config/routes.ts)
-
-```typescript
-ROUTES = {
-  HOME: '/',
-  LOGIN: '/login',
-  REGISTER: '/register',
-  ABOUT: '/about',
-  PATIENT_DASHBOARD: '/patient/dashboard',
-  PSYCHOLOGIST_DASHBOARD: '/psychologist/dashboard',
-  ADMIN_DASHBOARD: '/admin/dashboard',
-  ADMIN_USERS: '/admin/users',
-};
-
-PUBLIC_ROUTES = ["/", "/login", "/register", "/about"];
-```
-
----
-
-## Middleware (src/proxy.ts)
-
-O arquivo `proxy.ts` exporta a função `proxy` e o `config.matcher`. O `middleware.ts` na raiz do Next.js chama esse proxy.
-
-**Matcher atual:**
-
-```
-'/', '/login', '/register', '/about',
-'/admin/:path*', '/psychologist/:path*', '/patient/:path*'
-```
-
----
-
-## Componentes Globais Importantes
-
-### Header (`src/components/Organism/Header.tsx`)
-
-- Renderizado no root layout para **todas as páginas**
-- Mostra nav pública (Início, Sobre, Entrar, Cadastrar) quando `userRole === null`
-- Mostra perfil do usuário (dropdown) quando autenticado
-- Usa `roleLabel` e `roleAccessLabel` para exibir o nome correto do perfil (Paciente / Psicólogo / Administrador)
-- Recebe `userRole: RoleEnum | null` como prop
-
-### LateralMenu (`src/components/Organism/LateralMenu.tsx`)
-
-- Sidebar colapsável, visível **apenas quando autenticado**
-- Fica fixo à esquerda, 64px colapsado / 384px expandido no hover
-- Itens são condicionais por role:
-  - **Todos os roles:** Dashboard
-  - **Admin:** bloco vazio pronto para receber novos itens
-  - **Psychologist:** Pacientes (Em breve) + Configurações (Em breve)
-  - **Patient:** Consultas (Em breve) + Configurações (Em breve)
+Sistema social onde Pacientes e Psicólogos se conectam:
+- Listagem otimista: Uso de `ConnectionContext` para reagir em real-time a mudanças de status (Conectar, Remover, etc) sem reload.
+- `useConnectionActions`: Hook encapsulador que abstrai as chamadas HTTP e controla toasts/loading.
+- As Server Actions de perfis rodam em paralelo para buscar os dados de perfil + checar o estado de conexão com o remetente atual (via Promise.all).
 
 ---
 
 ## Convenções do Projeto
 
-### Frontend
-
-- **Componentes:** `PascalCase.tsx`
-- **Utilitários/configs:** `camelCase.ts`
-- **Diretórios de página:** `kebab-case/`
-- **Atomic Design:** Atoms → Molecules → Organism → Templates
-- **Server Actions:** toda mutação via API usa Next.js Server Actions em `src/actions/` — sem client-side fetch para auth
-- **Alias de importação:** `@/ → src/` (configurado em `tsconfig.json`)
-
-### Backend
-
-- **Nomenclatura:** Java CamelCase padrão
-- **Entidades:** sempre com `@Getter`, `@Setter`, `@NoArgsConstructor` (Lombok)
-- **Comunicação:** sempre via DTOs (nunca expõe entidades diretamente)
-- **Mapeamento:** MapStruct para conversões DTO ↔ Entity
-- **Validação:** Bean Validation (`@NotBlank`, `@Email`, etc.)
-- **Testes:** unitários nos serviços e integração nos controllers
-
----
-
-## CSS / Tema
-
-Variáveis CSS em `globals.css`:
-
-- `--primary` — cor principal
-- `--secondary` — cor secundária
-- `--tertiary` — cor terciária
-
----
-
-## Variáveis de Ambiente
-
-| Variável                        | Descrição                             |
-| ------------------------------- | ------------------------------------- |
-| `NEXT_PUBLIC_API_URL`           | URL base da API Spring Boot           |
-| `NEXT_PUBLIC_COOKIE_TOKEN_NAME` | Nome do cookie JWT (`psiconet_token`) |
-| `NEXT_PUBLIC_ROLE_PREFIX`       | Prefixo de role no JWT (`ROLE_`)      |
-| `KEEP_LOGGED_TIME`              | Dias para "Manter conectado" (`7`)    |
-| `ACCESS_TIME`                   | Minutos de sessão padrão (`180`)      |
-
----
-
-## Links Úteis
-
-- **Swagger UI (local):** `http://localhost:8080/swagger-ui/index.html`
-- **Frontend Repo:** [Psiconet-Frontend](https://github.com/jonathaneamorim/Psiconet-Frontend)
-
----
-
-## Branch Atual
-
-`feat/admin-screen` — Adicionando suporte completo ao perfil de Administrador:
-
-- [x] Estrutura de diretório `/admin/dashboard/`
-- [x] Header corrigido para exibir "Administrador"
-- [x] LateralMenu com link "Usuários" para admin
-- [x] Tela `/admin/users` — listagem paginada (20/página), edição e toggle de status
-- [ ] Tela de dashboard do admin (em construção)
+- **Frontend**: Server-First (App Router). `use client` apenas nas "folhas" da árvore React que precisam de interatividade.
+- **Tipagem Estrita**: Nenhuma entidade de negócio pode ter tipagem inferida com `any`. Todo dado transacional mapeia-se via `src/types`.
+- **Forms nativos**: A preferência é o uso nativo de `FormData` ao invés de bibliotecas pesadas, mantendo a performance alta.
 
 ---
 
 ## O que ainda NÃO existe (planejado)
 
-- Tela de dashboard do admin com métricas e resumos
-- Agenda / calendário (psicólogo)
-- Listagem e agendamento de consultas (paciente)
-- Perfil editável de usuário
-- Notificações
-- Audit logging via entidade `ChangeLog` (estrutura backend preparada)
+- Agenda / calendário de consultas (psicólogo)
+- Listagem e agendamento prático de sessões (paciente)
+- Configurações de Perfil detalhado (upload de foto real via S3/Blob)
+- Notificações completas em tempo real (WebSockets ou SSE)

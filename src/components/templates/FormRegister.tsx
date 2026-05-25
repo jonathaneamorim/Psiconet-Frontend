@@ -29,9 +29,24 @@ export function FormRegister() {
         e.preventDefault();
 
         const formData = new FormData(e.currentTarget);
+        const fullName = formData.get("fullName")?.toString().trim() ?? "";
         const password = formData.get("password")?.toString() ?? "";
         const repeatPassword = formData.get("repeatPassword")?.toString() ?? "";
         const passwordMismatch = password !== repeatPassword;
+
+        const frontendErrors: Record<string, string> = {};
+        if (fullName.length < 3) {
+            frontendErrors.fullName = "Nome completo deve ter pelo menos 3 caracteres.";
+        }
+        if (passwordMismatch) {
+            frontendErrors.repeatPassword = "As senhas não coincidem.";
+        }
+
+        if (Object.keys(frontendErrors).length > 0) {
+            setFieldErrors(frontendErrors);
+            toast.error("Corrija os campos destacados.");
+            return;
+        }
 
         setLoading(true);
         const toastId = toast.loading("Realizando cadastro...");
@@ -39,13 +54,9 @@ export function FormRegister() {
         const result = await registerAction(formData);
 
         const backendFields = result?.fields ?? {};
-        const mergedErrors = {
-            ...backendFields,
-            ...(passwordMismatch && { repeatPassword: "As senhas não coincidem." }),
-        };
 
-        if (Object.keys(mergedErrors).length > 0) {
-            setFieldErrors(mergedErrors);
+        if (Object.keys(backendFields).length > 0) {
+            setFieldErrors(backendFields);
             toast.error(result?.error || "Corrija os campos destacados.", { id: toastId });
         } else if (result?.error) {
             toast.error(result.error, { id: toastId });
@@ -57,39 +68,47 @@ export function FormRegister() {
     }
 
     return (
-        <div className="w-full bg-[var(--secondary)] px-5 py-5 rounded-3xl shadow-md flex justify-center align-center flex-col gap-6">
-            <div className="w-full align-center justify-center flex flex-col text-center">
-                <h1 className="text-4xl">Psiconet</h1>
-                <p className="text-2xl">Cadastro</p>
+        <div className="w-full flex flex-col gap-8">
+            <div className="w-full flex flex-col gap-2 text-center">
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Crie sua Conta</h2>
+                <p className="text-slate-500 text-lg">Junte-se a nós para cuidar da sua saúde mental.</p>
             </div>
 
-            <form onSubmit={handleRegister} className="flex flex-col gap-6">
-                <div className="flex justify-center gap-8 py-2">
-                    <label className="flex items-center gap-2 cursor-pointer text-lg">
-                        <input
-                            type="radio"
-                            name="userRole"
-                            value={RoleEnum.PATIENT}
-                            checked={role === RoleEnum.PATIENT}
-                            onChange={() => setRole(RoleEnum.PATIENT)}
-                            className="w-5 h-5 accent-[var(--primary)] cursor-pointer"
-                        />
-                        Paciente
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer text-lg">
-                        <input
-                            type="radio"
-                            name="userRole"
-                            value={RoleEnum.PSYCHOLOGIST}
-                            checked={role === RoleEnum.PSYCHOLOGIST}
-                            onChange={() => setRole(RoleEnum.PSYCHOLOGIST)}
-                            className="w-5 h-5 accent-[var(--primary)] cursor-pointer"
-                        />
-                        Psicólogo
-                    </label>
+            <form onSubmit={handleRegister} className="flex flex-col gap-5 mt-2">
+                {/* Segmented Control para o Tipo de Conta */}
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full max-w-sm mx-auto shadow-inner">
+                    <button
+                        type="button"
+                        onClick={() => setRole(RoleEnum.PATIENT)}
+                        className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${
+                            role === RoleEnum.PATIENT 
+                            ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' 
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                        }`}
+                    >
+                        Sou Paciente
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setRole(RoleEnum.PSYCHOLOGIST)}
+                        className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${
+                            role === RoleEnum.PSYCHOLOGIST 
+                            ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' 
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                        }`}
+                    >
+                        Sou Psicólogo
+                    </button>
                 </div>
 
                 <div className="flex flex-col gap-3">
+                    <InputLabel 
+                        fieldName="Nome Completo" 
+                        name="fullName" 
+                        inputType="text" 
+                        error={fieldErrors["fullName"]}
+                        onClearError={() => clearFieldError("fullName")}
+                    />
                     <InputLabel 
                         fieldName="Email" 
                         name="email" 
@@ -135,15 +154,20 @@ export function FormRegister() {
                     />
                 </div>
 
-                <div className="flex flex-col text-center w-full gap-4">
-                    <div className="flex flex-col whitespace-nowrap">
-                        <Link href="/login" className="text-base italic hover:text-[var(--primary)] transition-colors">
-                            Já possui cadastro? Faça login
-                        </Link>
+                <div className="flex flex-col text-center w-full gap-4 pt-4">
+                    <Button variant="primary" type="submit" className="shadow-md hover:scale-105" disabled={loading}>
+                        {loading ? 'Cadastrando...' : 'Criar conta como ' + translateRole(role)}
+                    </Button>
+                    
+                    <div className="flex flex-col gap-2 mt-2 text-sm text-slate-600">
+                        <p>
+                            Já possui cadastro?{' '}
+                            <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                                Faça login
+                            </Link>
+                        </p>
                     </div>
                 </div>
-
-                <Button variant="tertiary" type="submit" disabled={loading}>{loading ? 'Cadastrando...' : 'Cadastrar ' + translateRole(role)}</Button>
             </form>
         </div>
     );

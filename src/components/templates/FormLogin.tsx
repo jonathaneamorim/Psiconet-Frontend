@@ -44,11 +44,13 @@ export function FormLogin() {
 
     if (view === 'recover') {
         return (
-            <div className="w-full bg-[var(--secondary)] px-5 py-5 rounded-3xl shadow-md flex justify-center align-center flex-col gap-6 text-center">
-                <h2 className="text-2xl">Recuperar Senha</h2>
-                <p className="text-sm text-gray-500">
-                    Digite seu e-mail para receber as instruções de acesso à sua conta.
-                </p>
+            <div className="w-full flex flex-col gap-8 text-center">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Recuperar Senha</h2>
+                    <p className="text-sm text-gray-500">
+                        Digite seu e-mail para receber as instruções de acesso à sua conta.
+                    </p>
+                </div>
 
                 <form onSubmit={handleRecover} className="flex flex-col gap-6">
                     <InputLabel fieldName="Email" name="emailRecover" inputType="email" />
@@ -65,13 +67,13 @@ export function FormLogin() {
     }
 
     return (
-        <div className="w-full bg-[var(--secondary)] px-5 py-5 rounded-3xl shadow-md flex justify-center align-center flex-col gap-6">
-            <div className="w-full align-center justify-center flex flex-col text-center">
-                <h1 className="text-4xl">Psiconet</h1>
-                <p className="text-2xl">Login</p>
+        <div className="w-full flex flex-col gap-8">
+            <div className="w-full flex flex-col gap-2 text-center">
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Acesso Plataforma</h2>
+                <p className="text-slate-500 text-lg">Faça login para continuar sua jornada.</p>
             </div>
 
-            <form onSubmit={handleLogin} className="flex flex-col gap-6">
+            <form onSubmit={handleLogin} className="flex flex-col gap-5 mt-4">
                 <div className="flex flex-col gap-3">
                     <InputLabel fieldName="Email" name="email" inputType="email" />
                     <InputLabel fieldName="Senha" name="password" inputType="password" />
@@ -83,17 +85,25 @@ export function FormLogin() {
                         <label htmlFor="keeploggedin">Manter login</label>
                     </div>
 
-                    <div className="flex flex-col whitespace-nowrap">
-                        <Link href="/register" className="text-base italic hover:text-[var(--primary)] transition-colors">
-                            Ainda não possui cadastro?
-                        </Link>
-                        <button type="button" onClick={() => setView('recover')} className="text-base italic cursor-pointer text-center hover:text-[var(--primary)] transition-colors mt-1">
-                            Esqueceu a senha?
-                        </button>
-                    </div>
+                    <button type="button" onClick={() => setView('recover')} className="text-sm italic cursor-pointer hover:text-[var(--primary)] transition-colors">
+                        Esqueceu a senha?
+                    </button>
                 </div>
 
-                <Button variant="tertiary" type="submit" disabled={loading}>{loading ? 'Entrando ...' : 'Entrar'}</Button>
+                <div className="flex flex-col text-center w-full gap-4 pt-2">
+                    <Button variant="primary" type="submit" disabled={loading}>
+                        {loading ? 'Acessando...' : 'Acessar'}
+                    </Button>
+                    
+                    <div className="flex flex-col gap-2 mt-4 text-sm text-slate-600">
+                        <p>
+                            Não possui cadastro?{' '}
+                            <Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                                Cadastre-se
+                            </Link>
+                        </p>
+                    </div>
+                </div>
             </form>
         </div>
     );

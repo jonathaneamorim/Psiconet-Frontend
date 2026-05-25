@@ -6,6 +6,7 @@ import { Button } from "../Atoms/Button";
 import { RoleEnum } from "@/enums/RoleEnum";
 import { logoutAction } from "@/actions/logout";
 import { NAV_ITEMS } from "@/config/navigation";
+import { ConnectionRequestsDropdown } from "./ConnectionRequestsDropdown";
 import toast from "react-hot-toast";
 
 interface HeaderProps {
@@ -87,7 +88,10 @@ export function Header({ userRole }: HeaderProps) {
                             </div>
                         </>
                     ) : (
-                        <div className="relative" ref={profileRef}>
+                        <div className="flex items-center gap-4">
+                            <ConnectionRequestsDropdown />
+                            <div className="h-6 w-px bg-slate-200"></div>
+                            <div className="relative" ref={profileRef}>
                             <button
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 className="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all focus:outline-none"
@@ -115,7 +119,7 @@ export function Header({ userRole }: HeaderProps) {
                                 </div>
                                 <ul className="py-2 text-sm text-slate-600 font-medium">
                                     <li>
-                                        <Link href={`/${userRole}/dashboard`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 hover:text-[var(--primary)] transition-colors" onClick={() => setIsProfileOpen(false)}>
+                                        <Link href={`/${userRole}/profile`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 hover:text-[var(--primary)] transition-colors" onClick={() => setIsProfileOpen(false)}>
                                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                             Meu Perfil
                                         </Link>
@@ -137,6 +141,7 @@ export function Header({ userRole }: HeaderProps) {
                                     </button>
                                 </div>
                             </div>
+                        </div>
                         </div>
                     )}
                 </nav>
@@ -223,7 +228,7 @@ export function Header({ userRole }: HeaderProps) {
                                 {/* Mobile Profile Actions */}
                                 <div className="flex flex-col gap-1">
                                     <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">Opções de Perfil</h3>
-                                    <Link href={`/${userRole}/dashboard`} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
+                                    <Link href={`/${userRole}/profile`} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
                                         <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                         Meu Perfil
                                     </Link>
