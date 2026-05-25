@@ -1,7 +1,7 @@
 import { sharedMetadata } from "./shared-metadata";
 import { Raleway } from 'next/font/google';
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
+import { ToasterProvider } from "@/components/Atoms/ToasterProvider";
 import { Header } from "@/components/Organism/Header";
 import { LateralMenu } from "@/components/Organism/LateralMenu";
 import { getUserRole } from "@/lib/auth";
@@ -36,17 +36,7 @@ export default async function RootLayout({
         <main className={role ? "lg:pl-16" : ""}>
           {children}
         </main>
-        <Toaster 
-          position="top-right" 
-          toastOptions={{ 
-            duration: 4000,
-            style: {
-              maxWidth: '350px',
-              wordBreak: 'break-word', 
-            },
-            className: '!max-w-[90vw] md:!max-w-sm truncate', 
-          }}
-          />
+        <ToasterProvider />
       </body>
     </html>
   );

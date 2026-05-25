@@ -6,6 +6,7 @@ export const ROUTES = {
     PATIENT_DASHBOARD: '/patient/dashboard',
     PSYCHOLOGIST_DASHBOARD: '/psychologist/dashboard',
     ADMIN_DASHBOARD: '/admin/dashboard',
+    ADMIN_USERS: '/admin/users',
 } as const;
 
 export const PUBLIC_ROUTES = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.REGISTER, ROUTES.ABOUT] as const;

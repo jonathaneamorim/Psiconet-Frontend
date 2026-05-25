@@ -1,11 +1,10 @@
 "use server";
 
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { COOKIE_TOKEN } from '@/constants/cookies';
+import { cookieService } from '@/services/cookieService';
 import { ROUTES } from '@/config/routes';
 
 export async function logoutAction() {
-    (await cookies()).delete(COOKIE_TOKEN);
+    await cookieService.clearAuth();
     redirect(ROUTES.HOME);
 }
