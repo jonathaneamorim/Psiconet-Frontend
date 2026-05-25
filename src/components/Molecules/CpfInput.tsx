@@ -96,7 +96,7 @@ export function CpfInput({ error, onClearError, labelStyle, inputStyle }: Props)
 
       <label
         htmlFor={id}
-        className={`block text-lg italic font-medium text-heading ${labelStyle ?? ''}`}
+        className={`block text-sm font-semibold text-slate-700 text-left ${labelStyle ?? ''}`}
       >
         CPF
       </label>
@@ -115,7 +115,7 @@ export function CpfInput({ error, onClearError, labelStyle, inputStyle }: Props)
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         onFocus={handleFocus}
-        className={`border text-heading text-sm rounded-lg block w-full px-3 py-2.5 shadow-xs placeholder:text-body transition-colors ${
+        className={`border border-slate-200 bg-slate-50 text-slate-900 text-sm rounded-xl block w-full px-4 py-3 shadow-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
           activeError
             ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-1 focus:ring-red-300'
             : ''

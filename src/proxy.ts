@@ -36,7 +36,10 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL(userDashboard, request.url));
     }
 
-    if (requestedRole !== userRole) {
+    // Permitir acesso cruzado a perfis públicos (ex: um psicólogo vendo o perfil de um paciente)
+    const isPublicProfileRoute = pathname.match(/^\/(patient|psychologist)\/profile\/[a-zA-Z0-9-]+$/);
+
+    if (requestedRole !== userRole && !isPublicProfileRoute) {
         return NextResponse.redirect(new URL(userDashboard, request.url));
     }
 

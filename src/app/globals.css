@@ -11,7 +11,8 @@
 }
 
 body {
-  background: radial-gradient(circle, var(--primary) 0%, var(--primary-hover) 100%);
-  color: var(--tertiary);
+  background-color: #f8fafc; /* bg-slate-50 */
+  color: #0f172a; /* text-slate-900 */
   font-family: var(--font-raleway);
+  min-height: 100vh;
 }

@@ -5,6 +5,7 @@ import { ToasterProvider } from "@/components/Atoms/ToasterProvider";
 import { Header } from "@/components/Organism/Header";
 import { LateralMenu } from "@/components/Organism/LateralMenu";
 import { getUserRole } from "@/lib/auth";
+import { ConnectionProvider } from "@/contexts/ConnectionContext";
 import NextTopLoader from "nextjs-toploader";
 
 const raleway = Raleway({
@@ -31,11 +32,13 @@ export default async function RootLayout({
           showSpinner={false}
         />
         
-        <Header userRole={role} />
-        <LateralMenu userRole={role} />
-        <main className={role ? "lg:pl-16" : ""}>
-          {children}
-        </main>
+        <ConnectionProvider>
+          <Header userRole={role} />
+          <LateralMenu userRole={role} />
+          <main className={role ? "lg:pl-16" : ""}>
+            {children}
+          </main>
+        </ConnectionProvider>
         <ToasterProvider />
       </body>
     </html>

@@ -1,3 +1,7 @@
+import type { PageMetadata, PaginatedResponse } from '@/types/connection';
+
+export type { PageMetadata, PaginatedResponse };
+
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'SUSPENDED';
 export type UserRole = 'ADMIN' | 'PSYCHOLOGIST' | 'PATIENT';
 
@@ -10,20 +14,6 @@ export interface AdminUser {
   role: UserRole;
   status: UserStatus;
   createdAt: string;
-}
-
-/** Metadados de paginação — campo `page` na resposta do Spring Boot */
-export interface PageMetadata {
-  size: number;
-  number: number;       // página atual (0-indexed)
-  totalElements: number;
-  totalPages: number;
-}
-
-/** Resposta paginada do Spring Boot 3 */
-export interface PaginatedResponse<T> {
-  content: T[];
-  page: PageMetadata;
 }
 
 export interface UpdateUserStatusPayload {

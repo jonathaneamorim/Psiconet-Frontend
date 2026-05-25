@@ -1,7 +1,6 @@
 import { getUsersAction } from '@/actions/admin';
 import { UsersTable } from '@/components/Organism/UsersTable';
 import { Pagination } from '@/components/Molecules/Pagination';
-import { SortSelect } from '@/components/Molecules/SortSelect';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -78,8 +77,6 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   Todos os usuários
                 </span>
               </div>
-
-              {/* <SortSelect /> */}
             </div>
 
             {/* Tabela */}

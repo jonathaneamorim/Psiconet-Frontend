@@ -2,75 +2,59 @@
     "homepage": {
         "firstSection": {
             "title": "Bem-vindo ao Psiconet",
-            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
+            "text": "Psiconet conecta pacientes a psicólogos de forma simples, segura e humanizada. Encontre o profissional ideal para sua jornada de saúde mental.",
             "buttonText": "Quem somos nós?",
-            "buttonLink": "/#utilities",
+            "buttonLink": "/#quem-somos",
             "imageSrc": "/homepage1.png"
         },
         "secondSection": {
             "title": "Quem somos nós?",
-            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
-            "buttonText": "Quem somos nós?",
+            "text": "Somos uma plataforma dedicada a facilitar o acesso à saúde mental no Brasil, aproximando pacientes e psicólogos com tecnologia e cuidado.",
+            "buttonText": "Saiba mais",
             "buttonLink": "/about",
             "imageSrc": "/homepage2.png"
         },
         "thirdSection": {
             "block1": {
                 "title": "Sou psicólogo",
-                "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
+                "text": "Cadastre-se e conecte-se com pacientes que buscam apoio profissional. Gerencie sua agenda e expanda seu atendimento.",
                 "buttonText": "Acesso psicólogo",
                 "buttonLink": "/login"
             },
             "block2": {
                 "title": "Sou paciente",
-                "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ",
+                "text": "Encontre um psicólogo que combine com você. Agende sessões e cuide da sua saúde mental com segurança.",
                 "buttonText": "Acesso paciente",
                 "buttonLink": "/login"
             }
         },
         "carouselSection": {
-            "title": "Latest Insights & Resources",
-            "text": "Swipe through our latest articles and resources to help you support your mental health journey.",
+            "title": "Conteúdos sobre Saúde Mental",
+            "text": "Explore artigos e recursos para apoiar sua jornada de saúde mental.",
             "items": [
                 {
-                    "title": "Understanding Cognitive Behavioral Therapy",
-                    "text": "Cognitive Behavioral Therapy (CBT) is an effective treatment for a wide range of mental health issues, including depression and anxiety."
+                    "title": "Terapia Cognitivo-Comportamental",
+                    "text": "A TCC é uma das abordagens mais eficazes para tratar depressão, ansiedade e outros transtornos mentais."
                 },
                 {
-                    "title": "The Importance of Self-Care",
-                    "text": "Taking time for self-care is crucial for maintaining mental and emotional well-being. It can be as simple as a 10-minute daily meditation."
+                    "title": "A Importância do Autocuidado",
+                    "text": "Reservar tempo para si mesmo é essencial para o bem-estar mental e emocional. Pequenas práticas diárias fazem grande diferença."
                 },
                 {
-                    "title": "Navigating Relationship Anxiety",
-                    "text": "Learn effective strategies to communicate better and address relationship anxiety with your partner."
+                    "title": "Ansiedade nos Relacionamentos",
+                    "text": "Aprenda estratégias eficazes para comunicar-se melhor e lidar com a ansiedade em relacionamentos."
                 },
                 {
-                    "title": "Mindfulness in Daily Life",
-                    "text": "Mindfulness helps us to remain present. Discover how implementing small mental exercises can reduce overall stress."
+                    "title": "Mindfulness no Dia a Dia",
+                    "text": "A atenção plena nos ajuda a permanecer presentes. Descubra como pequenos exercícios mentais reduzem o estresse."
                 },
                 {
-                    "title": "Building Resilience",
-                    "text": "Life is full of challenges, but building resilience can help you bounce back stronger after adversity."
+                    "title": "Construindo Resiliência",
+                    "text": "A vida é cheia de desafios, mas desenvolver resiliência nos ajuda a superar adversidades com mais equilíbrio."
                 },
                 {
-                    "title": "Sleep Hygiene and Mental Health",
-                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
-                },
-                {
-                    "title": "Sleep Hygiene and Mental Health",
-                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
-                },
-                {
-                    "title": "Sleep Hygiene and Mental Health",
-                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
-                },
-                {
-                    "title": "Sleep Hygiene and Mental Health",
-                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
-                },
-                {
-                    "title": "Sleep Hygiene and Mental Health",
-                    "text": "Adequate sleep is fundamental to cognitive function and emotional regulation. Here are tips to improve your sleep."
+                    "title": "Sono e Saúde Mental",
+                    "text": "O sono adequado é fundamental para a cognição e a regulação emocional. Veja dicas para melhorar sua qualidade de sono."
                 }
             ]
         }
