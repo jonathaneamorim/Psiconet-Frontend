@@ -16,7 +16,6 @@ export interface ConnectionRequest {
   acceptedAt: string | null;
 }
 
-/** Metadados de paginação — campo `page` nas respostas do Spring Boot 3 */
 export interface PageMetadata {
   size: number;
   number: number;
@@ -24,13 +23,10 @@ export interface PageMetadata {
   totalPages: number;
 }
 
-/** Resposta paginada do Spring Boot 3 — reutilizada em toda a aplicação */
 export interface PaginatedResponse<T> {
   content: T[];
   page: PageMetadata;
 }
-
-// ─── Active Connections (GET /connections) ────────────────────────────────────
 
 export interface SpecialtyDTO {
   id: string;
@@ -44,7 +40,6 @@ export interface ConnectedUserDTO {
   role: 'PATIENT' | 'PSYCHOLOGIST';
   city?: string;
   state?: string;
-  // psychologist-only fields
   crp?: string;
   specialties?: SpecialtyDTO[];
   experienceTime?: number;

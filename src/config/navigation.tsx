@@ -9,8 +9,6 @@ export interface NavItem {
   comingSoon?: boolean;
 }
 
-// ─── Ícones reutilizáveis ────────────────────────────────────────────────────
-
 const IconDashboard = (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -61,8 +59,6 @@ const IconConnections = (
   </svg>
 );
 
-// ─── Configuração central de navegação ──────────────────────────────────────
-
 export const NAV_ITEMS: Record<RoleEnum, NavItem[]> = {
   [RoleEnum.ADMIN]: [
     {
@@ -84,10 +80,9 @@ export const NAV_ITEMS: Record<RoleEnum, NavItem[]> = {
       icon: IconDashboard,
     },
     {
-      label: 'Pacientes',
-      href: '#',
-      icon: IconPatients,
-      comingSoon: true,
+      label: 'Agenda de Consultas',
+      href: ROUTES.PSYCHOLOGIST_APPOINTMENTS,
+      icon: IconAppointments,
     },
     {
       label: 'Buscar Pacientes',
@@ -115,9 +110,8 @@ export const NAV_ITEMS: Record<RoleEnum, NavItem[]> = {
     },
     {
       label: 'Consultas',
-      href: '#',
+      href: ROUTES.PATIENT_APPOINTMENTS,
       icon: IconAppointments,
-      comingSoon: true,
     },
     {
       label: 'Buscar Psicólogos',

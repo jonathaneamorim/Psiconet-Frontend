@@ -7,8 +7,6 @@ import { RoleEnum } from '@/enums/RoleEnum';
 import type { PsychologistProfile, PatientProfile, UserProfile } from '@/types/profile';
 import type { PaginatedResponse } from '@/types/connection';
 
-// ─── Perfil público por ID ────────────────────────────────────────────────────
-
 export async function getPsychologistProfileAction(
   id: string
 ): Promise<{ data?: PsychologistProfile; error?: string }> {
@@ -21,9 +19,8 @@ export async function getPatientProfileAction(
   return apiClient.get<PatientProfile>(`/patients/${id}`);
 }
 
-// ─── Perfil próprio ───────────────────────────────────────────────────────────
 
-/** GET /patients/me ou /psychologists/me — perfil do usuário autenticado */
+/* GET /patients/me ou /psychologists/me — perfil do usuário autenticado */
 export async function getMeProfileAction(): Promise<{ data?: UserProfile; error?: string }> {
   const role = await getUserRole();
   if (!role) return { error: 'Role não encontrado.' };
@@ -32,9 +29,7 @@ export async function getMeProfileAction(): Promise<{ data?: UserProfile; error?
   return apiClient.get<UserProfile>(path);
 }
 
-// ─── Busca paginada ───────────────────────────────────────────────────────────
-
-/** GET /psychologists/search?name={name} */
+/* GET /psychologists/search?name={name} */
 export async function searchPsychologistsAction(
   name: string,
   page = 0,
@@ -44,7 +39,7 @@ export async function searchPsychologistsAction(
   return apiClient.get<PaginatedResponse<PsychologistProfile>>(`/psychologists/search?${params}`);
 }
 
-/** GET /patients/search?name={name} */
+/* GET /patients/search?name={name} */
 export async function searchPatientsAction(
   name: string,
   page = 0,

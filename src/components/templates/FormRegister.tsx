@@ -75,6 +75,7 @@ export function FormRegister() {
             </div>
 
             <form onSubmit={handleRegister} className="flex flex-col gap-5 mt-2">
+                <input type="hidden" name="userRole" value={role} />
                 {/* Segmented Control para o Tipo de Conta */}
                 <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full max-w-sm mx-auto shadow-inner">
                     <button

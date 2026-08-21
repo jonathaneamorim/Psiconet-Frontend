@@ -14,7 +14,6 @@ interface ConnectionListProps {
   searchLabel: string;
 }
 
-// ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 function ConnectionSkeleton() {
   return (
@@ -37,7 +36,6 @@ function ConnectionSkeleton() {
   );
 }
 
-// ─── Error state ──────────────────────────────────────────────────────────────
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
@@ -61,8 +59,6 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
     </div>
   );
 }
-
-// ─── Pagination bar ───────────────────────────────────────────────────────────
 
 function PaginationBar({
   currentPage,
@@ -122,11 +118,10 @@ function PaginationBar({
             <button
               key={p}
               onClick={() => onPageChange(p as number)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium transition-colors ${
-                p === currentPage
-                  ? 'bg-[var(--primary)] text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium transition-colors ${p === currentPage
+                ? 'bg-[var(--primary)] text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100'
+                }`}
               aria-current={p === currentPage ? 'page' : undefined}
             >
               {(p as number) + 1}
@@ -149,7 +144,6 @@ function PaginationBar({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
 
 export function ConnectionList({
   initialData,

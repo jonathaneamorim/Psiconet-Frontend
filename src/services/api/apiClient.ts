@@ -1,27 +1,20 @@
 import { API_URL } from '@/constants/api';
 import { cookieService } from '@/services/cookieService';
 
-// ─── Tipos internos ───────────────────────────────────────────────────────────
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 interface RequestOptions {
-  /** Dados enviados no body da requisição (serializado automaticamente como JSON) */
   body?: unknown;
-  /** Sobrescreve o cache padrão (`no-store`) */
   cache?: RequestCache;
-  /** A requisição não precisa de autenticação (ex: login, register) */
   public?: boolean;
 }
 
-/** Resultado padronizado de todas as chamadas ao apiClient */
 export interface ApiResult<T = void> {
   data?: T;
   error?: string;
   status?: number;
 }
-
-// ─── Mensagens de erro padrão ─────────────────────────────────────────────────
 
 const HTTP_ERRORS: Record<number, string> = {
   400: 'Dados inválidos.',
@@ -36,16 +29,12 @@ function getHttpErrorMessage(status: number, fallback: string): string {
   return HTTP_ERRORS[status] ?? fallback;
 }
 
-// ─── Cliente HTTP centralizado ────────────────────────────────────────────────
-
-/**
- * Cliente HTTP centralizado para Server Actions.
- *
- * - Injeta o Bearer token automaticamente (salvo quando `public: true`)
- * - Define `Content-Type: application/json` por padrão
- * - Define `cache: 'no-store'` por padrão
- * - Serializa o body automaticamente
- * - Retorna `{ data }` em caso de sucesso ou `{ error, status }` em caso de falha
+/*
+ * Injeta o Bearer token automaticamente (salvo quando `public: true`)
+ * Define `Content-Type: application/json` por padrão
+ * Define `cache: 'no-store'` por padrão
+ * Serializa o body automaticamente
+ * Retorna `{ data }` em caso de sucesso ou `{ error, status }` em caso de falha
  */
 async function request<T>(
   method: HttpMethod,
@@ -75,13 +64,10 @@ async function request<T>(
       try {
         const errorBody = await response.json();
         if (errorBody?.message) errorMessage = errorBody.message;
-      } catch {
-        // Resposta sem body JSON — usa mensagem padrão
-      }
+      } catch { }
       return { error: errorMessage, status: response.status };
     }
 
-    // Respostas sem body (ex: 204 No Content)
     const text = await response.text();
     if (!text) return {} as ApiResult<T>;
 
@@ -91,8 +77,6 @@ async function request<T>(
     return { error: 'Erro de conexão com o servidor.' };
   }
 }
-
-// ─── Métodos exportados ───────────────────────────────────────────────────────
 
 export const apiClient = {
   get: <T>(path: string, opts?: Omit<RequestOptions, 'body'>) =>

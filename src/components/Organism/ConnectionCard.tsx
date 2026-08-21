@@ -65,11 +65,10 @@ export function ConnectionCard({ connection, onDisconnect, isMutating }: Connect
                 {user.fullName}
               </h3>
             </Link>
-            <span className={`inline-flex self-center items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-              isPsychologist
+            <span className={`inline-flex self-center items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isPsychologist
                 ? 'bg-indigo-50 text-indigo-600'
                 : 'bg-emerald-50 text-emerald-600'
-            }`}>
+              }`}>
               {roleLabel}
             </span>
           </div>
@@ -128,8 +127,20 @@ export function ConnectionCard({ connection, onDisconnect, isMutating }: Connect
           </p>
         </div>
 
-        {/* Actions */}
         <div className="flex-shrink-0 flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
+          {!isPsychologist && (
+            <Link
+              href={`/psychologist/appointments?patientId=${user.id}`}
+              id={`schedule-appointment-${user.id}`}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)] rounded-xl transition-all shadow-2xs"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Agendar
+            </Link>
+          )}
           <Link
             href={profileUrl}
             id={`view-profile-${user.id}`}

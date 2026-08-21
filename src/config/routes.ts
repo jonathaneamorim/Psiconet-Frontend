@@ -13,6 +13,8 @@ export const ROUTES = {
     PSYCHOLOGIST_PROFILE: '/psychologist/profile',
     PATIENT_CONNECTIONS: '/patient/connections',
     PSYCHOLOGIST_CONNECTIONS: '/psychologist/connections',
+    PATIENT_APPOINTMENTS: '/patient/appointments',
+    PSYCHOLOGIST_APPOINTMENTS: '/psychologist/appointments',
 } as const;
 
 export const PUBLIC_ROUTES = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.REGISTER, ROUTES.ABOUT] as const;

@@ -46,19 +46,16 @@ export function useActiveConnections({
   }, []);
 
   const disconnect = useCallback((connectionId: string) => {
-    // Optimistic removal
     const previous = [...connections];
     setConnections((prev) => prev.filter((c) => c.connectionId !== connectionId));
 
     startTransition(async () => {
       const result = await removeConnectionAction(connectionId);
       if (result.error) {
-        // Rollback on failure
         setConnections(previous);
         toast.error(result.error);
       } else {
         toast.success('Conexão removida com sucesso.');
-        // Update total elements count optimistically
         setPageMeta((prev) =>
           prev ? { ...prev, totalElements: Math.max(0, prev.totalElements - 1) } : prev
         );
