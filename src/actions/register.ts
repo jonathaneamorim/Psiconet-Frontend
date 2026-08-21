@@ -13,7 +13,7 @@ type RegisterResponse = {
 };
 
 export async function registerAction(formData: FormData): Promise<RegisterResponse> {
-  const role = formData.get('userRole') as RoleEnum;
+  const role = (formData.get('userRole') || formData.get('role')) as RoleEnum;
 
   const path =
     role === RoleEnum.PATIENT

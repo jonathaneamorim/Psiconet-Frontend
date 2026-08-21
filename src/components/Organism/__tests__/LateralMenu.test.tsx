@@ -34,12 +34,16 @@ describe('LateralMenu Component', () => {
         
         expect(screen.getByTestId('lateral-menu')).toBeInTheDocument();
         expect(screen.getByText('Dashboard')).toBeInTheDocument();
-        expect(screen.getByText('Pacientes (Em breve)')).toBeInTheDocument();
+        expect(screen.getByText('Agenda de Consultas')).toBeInTheDocument();
+        expect(screen.getByText('Pacientes')).toBeInTheDocument();
         expect(screen.getByText('Sair')).toBeInTheDocument();
 
-        // Check exact href for dashboard
+        // Check exact href for dashboard and appointments
         const dashboardLink = screen.getByTestId('link-Dashboard');
         expect(dashboardLink).toHaveAttribute('href', '/psychologist/dashboard');
+
+        const appointmentsLink = screen.getByTestId('link-Agenda de Consultas');
+        expect(appointmentsLink).toHaveAttribute('href', '/psychologist/appointments');
     });
 
     it('should render menu for logged in PATIENT', () => {
@@ -47,11 +51,14 @@ describe('LateralMenu Component', () => {
         
         expect(screen.getByTestId('lateral-menu')).toBeInTheDocument();
         expect(screen.getByText('Dashboard')).toBeInTheDocument();
-        expect(screen.getByText('Consultas (Em breve)')).toBeInTheDocument();
+        expect(screen.getByText('Consultas')).toBeInTheDocument();
         
-        // Check exact href for dashboard
+        // Check exact href for dashboard and appointments
         const dashboardLink = screen.getByTestId('link-Dashboard');
         expect(dashboardLink).toHaveAttribute('href', '/patient/dashboard');
+
+        const appointmentsLink = screen.getByTestId('link-Consultas');
+        expect(appointmentsLink).toHaveAttribute('href', '/patient/appointments');
     });
 
     it('should trigger logout action when clicking Sair', async () => {

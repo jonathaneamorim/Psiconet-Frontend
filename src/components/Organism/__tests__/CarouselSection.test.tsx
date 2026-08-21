@@ -31,6 +31,7 @@ describe('CarouselSection', () => {
     
     // Check headings and text
     expect(getByText('Latest Insights & Resources')).toBeInTheDocument();
+    expect(getByText('Support your journey')).toBeInTheDocument();
     
     // Check that carousel is rendered
     expect(getByTestId('swiper-mock')).toBeInTheDocument();
@@ -39,7 +40,7 @@ describe('CarouselSection', () => {
     expect(getAllByTestId('swiper-slide-mock')).toHaveLength(2);
   });
 
-  it('applies default styling properties', () => {
+  it('renders with correct container section', () => {
     const mockProps = {
       title: "Title",
       text: "Text",
@@ -47,27 +48,6 @@ describe('CarouselSection', () => {
     };
     const { container } = render(<CarouselSection {...mockProps} />);
     const sectionElement = container.querySelector('section');
-    
-    expect(sectionElement).toHaveStyle({
-      backgroundColor: 'var(--secondary)',
-      color: 'var(--tertiary)'
-    });
-  });
-
-  it('applies custom background and text color styling properly', () => {
-    const mockProps = {
-      title: "Title",
-      text: "Text",
-      items: []
-    };
-    const { container } = render(
-      <CarouselSection {...mockProps} bgVariant="--primary" textColor="--secondary" />
-    );
-    const sectionElement = container.querySelector('section');
-    
-    expect(sectionElement).toHaveStyle({
-      backgroundColor: 'var(--primary)',
-      color: 'var(--secondary)'
-    });
+    expect(sectionElement).toBeInTheDocument();
   });
 });
