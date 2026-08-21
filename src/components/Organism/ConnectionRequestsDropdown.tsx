@@ -11,7 +11,7 @@ export function ConnectionRequestsDropdown() {
   const [requests, setRequests] = useState<ConnectionRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const { getConnectionState } = useConnections();
 
   useEffect(() => {
@@ -42,14 +42,12 @@ export function ConnectionRequestsDropdown() {
     setIsOpen(!isOpen);
   };
 
-  // Only show requests that are still PENDING_RECEIVED in the global context
-  // (or don't exist in the context yet, which defaults to their initial state).
   const visibleRequests = requests.filter(req => {
     const globalState = getConnectionState(req.sender.id);
     if (globalState) {
       return globalState.status === 'PENDING_RECEIVED';
     }
-    return true; // Still pending if no global state overrides it
+    return true;
   });
 
   return (
@@ -75,7 +73,7 @@ export function ConnectionRequestsDropdown() {
           <h3 className="text-sm font-bold text-slate-800">Solicitações de Conexão</h3>
           <span className="text-xs text-slate-500">{visibleRequests.length} pendentes</span>
         </div>
-        
+
         <div className="max-h-[300px] overflow-y-auto p-2">
           {isLoading ? (
             <div className="p-4 text-center text-sm text-slate-500">Carregando...</div>
@@ -98,9 +96,9 @@ export function ConnectionRequestsDropdown() {
                       <p className="text-xs text-slate-500 truncate">Deseja conectar-se com você</p>
                     </div>
                   </div>
-                  <ConnectionButton 
-                    userId={req.sender.id} 
-                    initialStatus="PENDING_RECEIVED" 
+                  <ConnectionButton
+                    userId={req.sender.id}
+                    initialStatus="PENDING_RECEIVED"
                     connectionId={req.id}
                   />
                 </li>
