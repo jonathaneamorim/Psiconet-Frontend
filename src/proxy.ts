@@ -30,6 +30,12 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL(userDashboard, request.url));
     }
 
+    // Rotas acessíveis por qualquer role autenticado
+    const isSharedAuthRoute = pathname.startsWith('/notifications');
+    if (isSharedAuthRoute) {
+        return NextResponse.next();
+    }
+
     const requestedRole = pathname.split('/')[1] as RoleEnum;
 
     if (!Object.values(RoleEnum).includes(requestedRole)) {
@@ -52,6 +58,7 @@ export const config = {
         '/login',
         '/register',
         '/about',
+        '/notifications/:path*',
         '/admin/:path*',
         '/psychologist/:path*',
         '/patient/:path*',

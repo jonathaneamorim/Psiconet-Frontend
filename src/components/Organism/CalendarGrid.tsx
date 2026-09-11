@@ -1,12 +1,14 @@
 'use client';
 
-import type { AppointmentDTO } from '@/types/appointment';
-import { generateMonthGrid, WEEK_DAYS } from '@/lib/calendar';
+import type { AppointmentDTO, VirtualOccurrence } from '@/types/appointment';
+import { generateMonthGrid, WEEK_DAYS, isSameDay } from '@/lib/calendar';
+import { RECURRENCE_FREQUENCY_LABELS } from '@/lib/recurrence';
 
 interface Props {
   currentDate: Date;
   selectedDate: Date;
   appointments: AppointmentDTO[];
+  virtualOccurrences?: VirtualOccurrence[];
   perspective: 'psychologist' | 'patient';
   onSelectDate: (date: Date) => void;
   onOpenCreateModal?: (date: Date) => void;
@@ -17,6 +19,7 @@ export function CalendarGrid({
   currentDate,
   selectedDate,
   appointments,
+  virtualOccurrences = [],
   perspective,
   onSelectDate,
   onOpenCreateModal,
@@ -48,7 +51,10 @@ export function CalendarGrid({
       <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 bg-slate-50/20">
         {days.map((cell, idx) => {
           const dateNumber = cell.date.getDate();
-          const hasAppointments = cell.appointments.length > 0;
+          const cellVirtualOccurrences = virtualOccurrences.filter((occurrence) =>
+            isSameDay(new Date(occurrence.startDateTime), cell.date)
+          );
+          const hasAppointments = cell.appointments.length > 0 || cellVirtualOccurrences.length > 0;
 
           return (
             <div
@@ -100,7 +106,6 @@ export function CalendarGrid({
                   });
 
                   let statusClasses = 'bg-blue-50 text-blue-700 border-blue-200';
-                  if (app.status === 'SCHEDULED') statusClasses = 'bg-amber-50 text-amber-700 border-amber-200';
                   if (app.status === 'ACCEPTED') statusClasses = 'bg-emerald-50 text-emerald-700 border-emerald-200';
                   if (app.status === 'CANCELLED') statusClasses = 'bg-red-50 text-red-600 border-red-200 opacity-60 line-through';
 
@@ -128,20 +133,41 @@ export function CalendarGrid({
                     +{cell.appointments.length - 2} mais
                   </span>
                 )}
+
+                {cell.appointments.length === 0 &&
+                  cellVirtualOccurrences.slice(0, 2).map((occurrence, i) => {
+                    const time = new Date(occurrence.startDateTime).toLocaleTimeString('pt-BR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+
+                    return (
+                      <div
+                        key={`${occurrence.recurrenceRuleId}-${i}`}
+                        title={`Ocorrência prevista da série ${RECURRENCE_FREQUENCY_LABELS[occurrence.frequency]}. Será confirmada quando a consulta anterior for concluída.`}
+                        className="text-left px-1.5 py-0.5 rounded-md border border-dashed border-violet-300 bg-violet-50/60 text-violet-500 text-[10px] sm:text-[11px] font-medium truncate flex items-center gap-1"
+                      >
+                        <span className="font-bold flex-shrink-0">{time}</span>
+                        <span className="truncate">Série {RECURRENCE_FREQUENCY_LABELS[occurrence.frequency]}</span>
+                      </div>
+                    );
+                  })}
               </div>
 
               {hasAppointments && (
                 <div className="flex items-center justify-center gap-1 mt-1 sm:hidden">
+                  {cell.appointments.length === 0 &&
+                    cellVirtualOccurrences.slice(0, 3).map((_, i) => (
+                      <span key={`virtual-${i}`} className="w-1.5 h-1.5 rounded-full bg-violet-300" />
+                    ))}
                   {cell.appointments.slice(0, 3).map((app, i) => (
                     <span
                       key={i}
                       className={`w-1.5 h-1.5 rounded-full ${app.status === 'ACCEPTED'
                           ? 'bg-emerald-500'
-                          : app.status === 'SCHEDULED'
-                            ? 'bg-amber-500'
-                            : app.status === 'CANCELLED'
-                              ? 'bg-red-500'
-                              : 'bg-blue-500'
+                          : app.status === 'CANCELLED'
+                            ? 'bg-red-500'
+                            : 'bg-blue-500'
                         }`}
                     />
                   ))}

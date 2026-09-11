@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { AppointmentDTO } from '@/types/appointment';
+import type { AppointmentDTO, AppointmentCancelScope } from '@/types/appointment';
 import { formatAppointmentDate, formatAppointmentTime } from '@/lib/calendar';
 
 interface Props {
@@ -9,9 +9,15 @@ interface Props {
   perspective: 'psychologist' | 'patient';
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (appointmentId: string, reason?: string) => Promise<void>;
+  onConfirm: (appointmentId: string, reason?: string, cancelScope?: AppointmentCancelScope) => Promise<void>;
   isMutating: boolean;
 }
+
+const SCOPE_OPTIONS: { value: AppointmentCancelScope; label: string; description: string }[] = [
+  { value: 'SINGLE', label: 'Apenas esta consulta', description: 'Cancela somente esta ocorrência da série.' },
+  { value: 'THIS_AND_FOLLOWING', label: 'Esta e as seguintes', description: 'Cancela esta e todas as próximas ocorrências.' },
+  { value: 'ALL_SERIES', label: 'Toda a série', description: 'Cancela todas as consultas da recorrência.' },
+];
 
 export function CancelAppointmentModal({
   appointment,
@@ -23,17 +29,16 @@ export function CancelAppointmentModal({
 }: Props) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+  const [cancelScope, setCancelScope] = useState<AppointmentCancelScope>('SINGLE');
 
   if (!isOpen || !appointment) return null;
 
   const isPatient = perspective === 'patient';
   const otherPerson = isPatient ? appointment.psychologist : appointment.patient;
-  const isScheduled = appointment.status === 'SCHEDULED';
+  const showScopeSelector = !isPatient && !!appointment.recurrenceRuleId;
 
-  const modalTitle = isPatient && isScheduled ? 'Recusar Consulta' : 'Cancelar Consulta';
-  const modalDescription = isPatient && isScheduled
-    ? 'Você está recusando esta solicitação de consulta. Por favor, informe o motivo para o psicólogo.'
-    : `Tem certeza de que deseja cancelar a consulta agendada com ${otherPerson.fullName}?`;
+  const modalTitle = 'Cancelar Consulta';
+  const modalDescription = `Tem certeza de que deseja cancelar a consulta agendada com ${otherPerson.fullName}?`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +48,7 @@ export function CancelAppointmentModal({
     }
 
     setError('');
-    await onConfirm(appointment.id, reason.trim());
+    await onConfirm(appointment.id, reason.trim(), isPatient ? 'SINGLE' : cancelScope);
     setReason('');
   };
 
@@ -51,6 +56,7 @@ export function CancelAppointmentModal({
     if (isMutating) return;
     setReason('');
     setError('');
+    setCancelScope('SINGLE');
     onClose();
   };
 
@@ -84,6 +90,38 @@ export function CancelAppointmentModal({
               Paciente: <span className="font-medium text-slate-700">{appointment.patient.fullName}</span>
             </p>
           </div>
+
+          {showScopeSelector && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-700">
+                Esta consulta faz parte de uma série recorrente. O que deseja cancelar?
+              </label>
+              <div className="flex flex-col gap-2">
+                {SCOPE_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${cancelScope === option.value
+                      ? 'bg-red-50 border-red-300'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancel-scope"
+                      value={option.value}
+                      checked={cancelScope === option.value}
+                      onChange={() => setCancelScope(option.value)}
+                      className="mt-0.5 w-4 h-4 text-red-600 focus:ring-red-500/30"
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-slate-800">{option.label}</p>
+                      <p className="text-[11px] text-slate-500">{option.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="cancel-reason" className="text-xs font-semibold text-slate-700">

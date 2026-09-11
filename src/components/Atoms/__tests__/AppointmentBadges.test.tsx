@@ -4,11 +4,6 @@ import { MeetingTypeBadge } from '../MeetingTypeBadge';
 
 describe('Appointment Badges', () => {
   describe('AppointmentStatusBadge', () => {
-    it('renders SCHEDULED status correctly', () => {
-      render(<AppointmentStatusBadge status="SCHEDULED" />);
-      expect(screen.getByText('Pendente')).toBeInTheDocument();
-    });
-
     it('renders ACCEPTED status correctly', () => {
       render(<AppointmentStatusBadge status="ACCEPTED" />);
       expect(screen.getByText('Confirmada')).toBeInTheDocument();
