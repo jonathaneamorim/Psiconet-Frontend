@@ -28,6 +28,7 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
     isLoading,
     isMutating,
     stats,
+    virtualOccurrences,
     isCreateModalOpen,
     createModalPatientId,
     createModalDate,
@@ -47,6 +48,7 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
     openDetailsModal,
     closeDetailsModal,
     handleCreateAppointment,
+    handleCreateRecurrence,
     handleCancelAppointment,
   } = useAppointments({ initialData, perspective: 'psychologist' });
 
@@ -65,7 +67,7 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
         subtitle="Gerencie seus horários, agende sessões com pacientes conectados e acompanhe confirmações."
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-[var(--primary)] flex items-center justify-center flex-shrink-0">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,18 +77,6 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
           <div>
             <p className="text-xl font-bold text-slate-800">{stats.today}</p>
             <p className="text-xs text-slate-400 font-medium">Hoje</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-xl font-bold text-amber-700">{stats.scheduled}</p>
-            <p className="text-xs text-slate-400 font-medium">Pendentes</p>
           </div>
         </div>
 
@@ -110,7 +100,7 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
           </div>
           <div>
             <p className="text-xl font-bold text-slate-800">{stats.total}</p>
-            <p className="text-xs text-slate-400 font-medium">Total de Sessões</p>
+            <p className="text-xs text-slate-400 font-medium">Total no Mês</p>
           </div>
         </div>
       </div>
@@ -121,7 +111,6 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
             [
               { key: 'ALL', label: 'Todos' },
               { key: 'ACCEPTED', label: 'Confirmadas' },
-              { key: 'SCHEDULED', label: 'Pendentes' },
               { key: 'CANCELLED', label: 'Canceladas' },
             ] as const
           ).map((tab) => (
@@ -167,6 +156,7 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
               currentDate={currentDate}
               selectedDate={selectedDate}
               appointments={filteredAppointments}
+              virtualOccurrences={virtualOccurrences}
               perspective="psychologist"
               onSelectDate={handleSelectDate}
               onOpenCreateModal={(date) => openCreateModal(undefined, date)}
@@ -269,6 +259,7 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
         isOpen={isCreateModalOpen}
         onClose={closeCreateModal}
         onConfirm={handleCreateAppointment}
+        onConfirmRecurrence={handleCreateRecurrence}
         isMutating={isMutating}
         preselectedPatientId={createModalPatientId}
         initialDate={createModalDate}

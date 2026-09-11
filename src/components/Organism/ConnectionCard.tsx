@@ -1,12 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import type { ActiveConnectionDTO } from '@/types/connection';
+import { EditTreatmentPriceModal } from '@/components/Molecules/EditTreatmentPriceModal';
 
 interface ConnectionCardProps {
   connection: ActiveConnectionDTO;
   onDisconnect: (connectionId: string) => void;
+  onUpdatePrice?: (treatmentLinkId: string, price: number) => Promise<boolean>;
   isMutating: boolean;
+}
+
+function formatPrice(price?: number): string | null {
+  if (price == null) return null;
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
 }
 
 function formatConnectedAt(iso: string): string {
@@ -28,7 +36,7 @@ function formatExperienceTime(months?: number): string | null {
   return `${years} ${years === 1 ? 'ano' : 'anos'} de experiência`;
 }
 
-export function ConnectionCard({ connection, onDisconnect, isMutating }: ConnectionCardProps) {
+export function ConnectionCard({ connection, onDisconnect, onUpdatePrice, isMutating }: ConnectionCardProps) {
   const { connectionId, connectedAt, user } = connection;
   const isPsychologist = user.role === 'PSYCHOLOGIST';
   const profileType = isPsychologist ? 'psychologist' : 'patient';
@@ -36,6 +44,14 @@ export function ConnectionCard({ connection, onDisconnect, isMutating }: Connect
   const roleLabel = isPsychologist ? 'Psicólogo(a)' : 'Paciente';
   const location = [user.city, user.state].filter(Boolean).join(', ');
   const experienceLabel = formatExperienceTime(user.experienceTime);
+  const priceLabel = formatPrice(user.defaultPrice);
+
+  const [isEditPriceOpen, setIsEditPriceOpen] = useState(false);
+
+  const handleUpdatePrice = async (price: number) => {
+    if (!onUpdatePrice || !user.treatmentLinkId) return false;
+    return onUpdatePrice(user.treatmentLinkId, price);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
@@ -117,6 +133,14 @@ export function ConnectionCard({ connection, onDisconnect, isMutating }: Connect
             </div>
           )}
 
+          {/* Patient-specific info (viewed by the psychologist) */}
+          {!isPsychologist && user.treatmentLinkId && (
+            <p className="text-xs text-slate-500 mt-2 flex items-center gap-1 justify-center sm:justify-start">
+              <span className="font-semibold text-slate-600">Preço padrão da sessão:</span>{' '}
+              {priceLabel ?? 'Não definido'}
+            </p>
+          )}
+
           {/* Connected since */}
           <p className="text-xs text-slate-400 mt-2 flex items-center gap-1 justify-center sm:justify-start">
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,6 +164,20 @@ export function ConnectionCard({ connection, onDisconnect, isMutating }: Connect
               </svg>
               Agendar
             </Link>
+          )}
+          {!isPsychologist && user.treatmentLinkId && onUpdatePrice && (
+            <button
+              id={`edit-price-${user.id}`}
+              onClick={() => setIsEditPriceOpen(true)}
+              disabled={isMutating}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-12a9 9 0 100 18 9 9 0 000-18z" />
+              </svg>
+              Editar Preço
+            </button>
           )}
           <Link
             href={profileUrl}
@@ -166,6 +204,17 @@ export function ConnectionCard({ connection, onDisconnect, isMutating }: Connect
           </button>
         </div>
       </div>
+
+      {!isPsychologist && user.treatmentLinkId && onUpdatePrice && (
+        <EditTreatmentPriceModal
+          isOpen={isEditPriceOpen}
+          patientName={user.fullName}
+          currentPrice={user.defaultPrice}
+          isMutating={isMutating}
+          onClose={() => setIsEditPriceOpen(false)}
+          onConfirm={handleUpdatePrice}
+        />
+      )}
     </div>
   );
 }

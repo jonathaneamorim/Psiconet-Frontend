@@ -1,21 +1,40 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type {
   AppointmentDTO,
   AppointmentCreateDTO,
   AppointmentStatus,
+  AppointmentCancelScope,
+  AppointmentStatsDTO,
+  VirtualOccurrence,
   CalendarViewMode,
 } from '@/types/appointment';
+import type { RecurrenceRuleCreateDTO } from '@/types/recurrence';
 import type { PaginatedResponse } from '@/types/connection';
 import {
   getMyAppointmentsAction,
   createAppointmentAction,
-  acceptAppointmentAction,
   cancelAppointmentAction,
+  getAppointmentStatsAction,
 } from '@/actions/appointments';
+import { createRecurrenceRuleAction, previewRecurrenceRuleAction } from '@/actions/recurrenceRules';
 import { isSameDay } from '@/lib/calendar';
 import toast from 'react-hot-toast';
+
+const EMPTY_STATS: AppointmentStatsDTO = {
+  accepted: 0,
+  completed: 0,
+  cancelled: 0,
+  noShow: 0,
+};
+
+function toDateParam(date: Date): string {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 interface UseAppointmentsOptions {
   initialData?: PaginatedResponse<AppointmentDTO>;
@@ -83,13 +102,90 @@ export function useAppointments({ initialData, perspective }: UseAppointmentsOpt
     );
   }, [filteredAppointments, selectedDate]);
 
+  // Estatísticas do mês exibido no calendário (não do total histórico do usuário).
+  const [monthStats, setMonthStats] = useState<AppointmentStatsDTO>(EMPTY_STATS);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAppointmentStatsAction(currentDate.getFullYear(), currentDate.getMonth() + 1).then((res) => {
+      if (!cancelled && res.data) {
+        setMonthStats(res.data);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentDate]);
+
   const stats = useMemo(() => {
-    const total = appointments.length;
-    const scheduled = appointments.filter((a) => a.status === 'SCHEDULED').length;
-    const accepted = appointments.filter((a) => a.status === 'ACCEPTED').length;
     const today = appointments.filter((a) => isSameDay(new Date(a.startDateTime), new Date())).length;
-    return { total, scheduled, accepted, today };
+    const total =
+      monthStats.accepted + monthStats.completed + monthStats.cancelled + monthStats.noShow;
+    return { total, accepted: monthStats.accepted, today };
+  }, [appointments, monthStats]);
+
+  // Ocorrências futuras (ainda não materializadas) das séries recorrentes presentes na
+  // lista, calculadas via preview da regra — para o calendário exibir a série completa
+  // sem depender do backend gerar um Appointment real por instância.
+  const [virtualOccurrences, setVirtualOccurrences] = useState<VirtualOccurrence[]>([]);
+
+  const activeRecurrenceRuleIds = useMemo(() => {
+    const ids = new Set<string>();
+    appointments.forEach((app) => {
+      if (app.recurrenceRuleId && app.status !== 'CANCELLED') {
+        ids.add(app.recurrenceRuleId);
+      }
+    });
+    return Array.from(ids);
   }, [appointments]);
+
+  useEffect(() => {
+    if (activeRecurrenceRuleIds.length === 0) {
+      setVirtualOccurrences([]);
+      return;
+    }
+
+    let cancelled = false;
+    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const from = toDateParam(monthStart);
+    const to = toDateParam(new Date(monthEnd.getTime() + 24 * 60 * 60 * 1000));
+
+    Promise.all(
+      activeRecurrenceRuleIds.map(async (ruleId) => {
+        const res = await previewRecurrenceRuleAction(ruleId, from, to);
+        const frequency = appointments.find((a) => a.recurrenceRuleId === ruleId)?.recurrenceFrequency;
+        if (!res.data || !frequency) return [];
+        return res.data.map<VirtualOccurrence>((startDateTime) => ({
+          recurrenceRuleId: ruleId,
+          frequency,
+          startDateTime,
+        }));
+      })
+    ).then((results) => {
+      if (!cancelled) {
+        setVirtualOccurrences(results.flat());
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRecurrenceRuleIds, currentDate]);
+
+  // Não duplica no calendário: some a ocorrência virtual do dia em que já existe
+  // um Appointment real (materializado) da mesma série.
+  const visibleVirtualOccurrences = useMemo(() => {
+    return virtualOccurrences.filter(
+      (occurrence) =>
+        !appointments.some(
+          (app) =>
+            app.recurrenceRuleId === occurrence.recurrenceRuleId &&
+            isSameDay(new Date(app.startDateTime), new Date(occurrence.startDateTime))
+        )
+    );
+  }, [virtualOccurrences, appointments]);
 
   const handlePrevMonth = () => {
     setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -163,49 +259,57 @@ export function useAppointments({ initialData, perspective }: UseAppointmentsOpt
     }
   };
 
-  const handleAcceptAppointment = async (appointmentId: string) => {
+  const handleCreateRecurrence = async (treatmentLinkId: string, dto: RecurrenceRuleCreateDTO) => {
     setIsMutating(true);
     try {
-      const res = await acceptAppointmentAction(appointmentId);
+      const res = await createRecurrenceRuleAction(treatmentLinkId, dto);
       if (res.error) {
         toast.error(res.error);
-        return;
+        return false;
       }
-      toast.success('Consulta confirmada com sucesso!');
-      setAppointments((prev) =>
-        prev.map((app) => (app.id === appointmentId ? { ...app, status: 'ACCEPTED' as const } : app))
-      );
-      if (detailsModalAppointment?.id === appointmentId) {
-        setDetailsModalAppointment((prev) => (prev ? { ...prev, status: 'ACCEPTED' as const } : null));
-      }
+      toast.success('Consulta recorrente criada com sucesso!');
+      await refresh();
+      return true;
     } catch {
-      toast.error('Erro ao aceitar consulta.');
+      toast.error('Erro ao criar consulta recorrente.');
+      return false;
     } finally {
       setIsMutating(false);
     }
   };
 
-  const handleCancelAppointment = async (appointmentId: string, reason?: string) => {
+  const handleCancelAppointment = async (
+    appointmentId: string,
+    reason?: string,
+    cancelScope?: AppointmentCancelScope
+  ) => {
     setIsMutating(true);
     try {
-      const res = await cancelAppointmentAction(appointmentId, reason);
+      const res = await cancelAppointmentAction(appointmentId, reason, cancelScope);
       if (res.error) {
         toast.error(res.error);
         return;
       }
       toast.success('Consulta cancelada.');
-      setAppointments((prev) =>
-        prev.map((app) =>
-          app.id === appointmentId
-            ? {
-              ...app,
-              status: 'CANCELLED' as const,
-              cancelledBy: perspective === 'psychologist' ? 'PSYCHOLOGIST' : 'PATIENT',
-              cancellationReason: reason,
-            }
-            : app
-        )
-      );
+
+      if (cancelScope && cancelScope !== 'SINGLE') {
+        // Múltiplos agendamentos da série podem ter sido afetados: recarrega a lista inteira.
+        await refresh();
+      } else {
+        setAppointments((prev) =>
+          prev.map((app) =>
+            app.id === appointmentId
+              ? {
+                ...app,
+                status: 'CANCELLED' as const,
+                cancelledBy: perspective === 'psychologist' ? 'PSYCHOLOGIST' : 'PATIENT',
+                cancellationReason: reason,
+              }
+              : app
+          )
+        );
+      }
+
       closeCancelModal();
       if (detailsModalAppointment?.id === appointmentId) {
         setDetailsModalAppointment((prev) =>
@@ -238,6 +342,7 @@ export function useAppointments({ initialData, perspective }: UseAppointmentsOpt
     isLoading,
     isMutating,
     stats,
+    virtualOccurrences: visibleVirtualOccurrences,
     isCreateModalOpen,
     createModalPatientId,
     createModalDate,
@@ -257,7 +362,7 @@ export function useAppointments({ initialData, perspective }: UseAppointmentsOpt
     openDetailsModal,
     closeDetailsModal,
     handleCreateAppointment,
-    handleAcceptAppointment,
+    handleCreateRecurrence,
     handleCancelAppointment,
     refresh,
   };

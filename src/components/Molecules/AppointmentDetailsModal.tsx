@@ -10,13 +10,13 @@ import {
   calculateDurationMinutes,
   formatFullDateTime,
 } from '@/lib/calendar';
+import { RECURRENCE_FREQUENCY_LABELS } from '@/lib/recurrence';
 
 interface Props {
   appointment: AppointmentDTO | null;
   perspective: 'psychologist' | 'patient';
   isOpen: boolean;
   onClose: () => void;
-  onAccept?: (id: string) => void;
   onCancel?: (appointment: AppointmentDTO) => void;
   isMutating?: boolean;
 }
@@ -26,14 +26,11 @@ export function AppointmentDetailsModal({
   perspective,
   isOpen,
   onClose,
-  onAccept,
   onCancel,
   isMutating = false,
 }: Props) {
   if (!isOpen || !appointment) return null;
 
-  const isPsychologist = perspective === 'psychologist';
-  const isScheduled = appointment.status === 'SCHEDULED';
   const isAccepted = appointment.status === 'ACCEPTED';
   const isCancelled = appointment.status === 'CANCELLED';
 
@@ -56,6 +53,10 @@ export function AppointmentDetailsModal({
   const mapsUrl = formattedAddress
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formattedAddress)}`
     : '';
+
+  const priceLabel = appointment.price != null
+    ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(appointment.price)
+    : null;
 
   return (
     <div
@@ -97,6 +98,28 @@ export function AppointmentDetailsModal({
               <MeetingTypeBadge type={appointment.meetingType} />
             </div>
           </div>
+
+          {(priceLabel || appointment.recurrenceRuleId) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {priceLabel && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full text-xs font-semibold">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-12a9 9 0 100 18 9 9 0 000-18z" />
+                  </svg>
+                  {priceLabel}
+                </span>
+              )}
+              {appointment.recurrenceRuleId && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-700 border border-violet-200/80 rounded-full text-xs font-semibold">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Consulta periódica
+                  {appointment.recurrenceFrequency && ` • ${RECURRENCE_FREQUENCY_LABELS[appointment.recurrenceFrequency]}`}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100">
             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[var(--primary)] shadow-2xs flex-shrink-0">
@@ -188,7 +211,7 @@ export function AppointmentDetailsModal({
                   href={appointment.meetingLink.startsWith('http') ? appointment.meetingLink : `https://${appointment.meetingLink}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-2xs transition-all"
+                  className="mt-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-2xs transition-all whitespace-nowrap w-full sm:w-auto"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -237,7 +260,7 @@ export function AppointmentDetailsModal({
         </div>
 
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
-          {(isScheduled || isAccepted) && onCancel ? (
+          {isAccepted && onCancel ? (
             <button
               onClick={() => {
                 onClose();
@@ -246,26 +269,13 @@ export function AppointmentDetailsModal({
               disabled={isMutating}
               className="px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
             >
-              {!isPsychologist && isScheduled ? 'Recusar Consulta' : 'Cancelar Consulta'}
+              Cancelar Consulta
             </button>
           ) : (
             <div />
           )}
 
           <div className="flex items-center gap-2">
-            {!isPsychologist && isScheduled && onAccept && (
-              <button
-                onClick={() => {
-                  onAccept(appointment.id);
-                  onClose();
-                }}
-                disabled={isMutating}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-all shadow-2xs cursor-pointer"
-              >
-                Aceitar Consulta
-              </button>
-            )}
-
             <button
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer shadow-2xs"

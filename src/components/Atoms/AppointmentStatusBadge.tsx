@@ -9,18 +9,6 @@ export function AppointmentStatusBadge({ status, size = 'md' }: Props) {
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-[11px] gap-1' : 'px-2.5 py-1 text-xs gap-1.5';
 
   switch (status) {
-    case 'SCHEDULED':
-      return (
-        <span
-          className={`inline-flex items-center font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200/80 shadow-2xs ${sizeClasses}`}
-        >
-          <svg className="w-3.5 h-3.5 flex-shrink-0 text-amber-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Pendente
-        </span>
-      );
-
     case 'ACCEPTED':
       return (
         <span

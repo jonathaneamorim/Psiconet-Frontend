@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { getMeProfileAction } from '@/actions/profile';
 import { getMyAppointmentsAction } from '@/actions/appointments';
 import { getActiveConnectionsAction } from '@/actions/connections';
+import { getFinancialSummaryAction } from '@/actions/payments';
+import { FinancialSummaryCard } from '@/components/Organism/FinancialSummaryCard';
 import { ROUTES } from '@/config/routes';
 import { AppointmentStatusBadge } from '@/components/Atoms/AppointmentStatusBadge';
 import { MeetingTypeBadge } from '@/components/Atoms/MeetingTypeBadge';
@@ -18,16 +20,18 @@ export const metadata = {
 };
 
 export default async function DashboardPsicologo() {
-  const [profileRes, appointmentsRes, connectionsRes] = await Promise.all([
+  const [profileRes, appointmentsRes, connectionsRes, financialSummaryRes] = await Promise.all([
     getMeProfileAction(),
     getMyAppointmentsAction(0, 50, 'startDateTime,asc'),
     getActiveConnectionsAction(0, 4),
+    getFinancialSummaryAction(),
   ]);
 
   const profile = profileRes.data;
   const appointments = appointmentsRes.data?.content || [];
   const connections = connectionsRes.data?.content || [];
   const totalConnections = connectionsRes.data?.page.totalElements || 0;
+  const financialSummary = financialSummaryRes.data;
 
   const now = new Date();
   const todayAppointments = appointments.filter((a) =>
@@ -38,7 +42,6 @@ export default async function DashboardPsicologo() {
     .filter((a) => new Date(a.startDateTime) >= now && a.status !== 'CANCELLED')
     .slice(0, 4);
 
-  const pendingAppointmentsCount = appointments.filter((a) => a.status === 'SCHEDULED').length;
   const nextSession = upcomingAppointments[0];
 
   const todayFormatted = new Intl.DateTimeFormat('pt-BR', {
@@ -92,7 +95,7 @@ export default async function DashboardPsicologo() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between gap-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Consultas Hoje</span>
@@ -103,18 +106,6 @@ export default async function DashboardPsicologo() {
               </div>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-slate-800">{todayAppointments.length}</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendentes</span>
-              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold text-amber-700">{pendingAppointmentsCount}</p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between gap-3">
@@ -224,6 +215,8 @@ export default async function DashboardPsicologo() {
           </div>
 
           <div className="flex flex-col gap-6">
+            {financialSummary && <FinancialSummaryCard summary={financialSummary} perspective="psychologist" />}
+
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-2xs flex flex-col gap-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 className="text-base font-bold text-slate-800">Meus Pacientes</h2>

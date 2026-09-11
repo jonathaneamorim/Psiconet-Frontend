@@ -33,6 +33,7 @@ export function PatientAgendaView({ initialData }: Props) {
     searchQuery,
     isMutating,
     stats,
+    virtualOccurrences,
     cancelModalAppointment,
     detailsModalAppointment,
     setViewMode,
@@ -46,16 +47,13 @@ export function PatientAgendaView({ initialData }: Props) {
     closeCancelModal,
     openDetailsModal,
     closeDetailsModal,
-    handleAcceptAppointment,
     handleCancelAppointment,
   } = useAppointments({ initialData, perspective: 'patient' });
 
   const now = new Date();
   const nextAppointment = appointments
-    .filter((a) => (a.status === 'ACCEPTED' || a.status === 'SCHEDULED') && new Date(a.startDateTime) >= now)
+    .filter((a) => a.status === 'ACCEPTED' && new Date(a.startDateTime) >= now)
     .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime())[0];
-
-  const pendingAppointments = appointments.filter((a) => a.status === 'SCHEDULED');
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,36 +65,8 @@ export function PatientAgendaView({ initialData }: Props) {
         onToday={handleToday}
         onViewModeChange={setViewMode}
         title="Minhas Consultas"
-        subtitle="Acompanhe sua agenda de sessões, confirme agendamentos e acesse suas salas de atendimento."
+        subtitle="Acompanhe sua agenda de sessões e acesse suas salas de atendimento."
       />
-
-      {pendingAppointments.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200/80 rounded-3xl p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-amber-900">
-                Você tem {pendingAppointments.length}{' '}
-                {pendingAppointments.length === 1 ? 'consulta pendente de confirmação' : 'consultas pendentes de confirmação'}
-              </h3>
-              <p className="text-xs text-amber-700 mt-0.5">
-                Revise os detalhes e confirme sua presença para liberar o acesso ao atendimento.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setStatusFilter('SCHEDULED')}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs self-start sm:self-center cursor-pointer"
-          >
-            Ver Pendentes
-          </button>
-        </div>
-      )}
 
       {nextAppointment && (
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
@@ -137,34 +107,14 @@ export function PatientAgendaView({ initialData }: Props) {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
-              {nextAppointment.status === 'SCHEDULED' ? (
-                <>
-                  <button
-                    onClick={() => handleAcceptAppointment(nextAppointment.id)}
-                    disabled={isMutating}
-                    className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Confirmar Presença
-                  </button>
-                  <button
-                    onClick={() => openCancelModal(nextAppointment)}
-                    disabled={isMutating}
-                    className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
-                  >
-                    Recusar
-                  </button>
-                </>
-              ) : nextAppointment.meetingType === 'VIDEO_CALL' && nextAppointment.meetingLink ? (
+              {nextAppointment.meetingType === 'VIDEO_CALL' && nextAppointment.meetingLink ? (
                 <a
                   href={nextAppointment.meetingLink.startsWith('http') ? nextAppointment.meetingLink : `https://${nextAppointment.meetingLink}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-5 py-2.5 bg-white text-indigo-700 hover:bg-blue-50 text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2"
+                  className="px-5 py-2.5 bg-white text-indigo-700 hover:bg-blue-50 text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 whitespace-nowrap flex-shrink-0 cursor-pointer"
                 >
-                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                   Entrar na Consulta Online
@@ -173,7 +123,7 @@ export function PatientAgendaView({ initialData }: Props) {
 
               <button
                 onClick={() => openDetailsModal(nextAppointment)}
-                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
               >
                 Ver Detalhes
               </button>
@@ -182,7 +132,7 @@ export function PatientAgendaView({ initialData }: Props) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-[var(--primary)] flex items-center justify-center flex-shrink-0">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,18 +142,6 @@ export function PatientAgendaView({ initialData }: Props) {
           <div>
             <p className="text-xl font-bold text-slate-800">{stats.today}</p>
             <p className="text-xs text-slate-400 font-medium">Hoje</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-xl font-bold text-amber-700">{stats.scheduled}</p>
-            <p className="text-xs text-slate-400 font-medium">Aguardando Você</p>
           </div>
         </div>
 
@@ -227,7 +165,7 @@ export function PatientAgendaView({ initialData }: Props) {
           </div>
           <div>
             <p className="text-xl font-bold text-slate-800">{stats.total}</p>
-            <p className="text-xs text-slate-400 font-medium">Total de Consultas</p>
+            <p className="text-xs text-slate-400 font-medium">Total no Mês</p>
           </div>
         </div>
       </div>
@@ -238,7 +176,6 @@ export function PatientAgendaView({ initialData }: Props) {
             [
               { key: 'ALL', label: 'Todas' },
               { key: 'ACCEPTED', label: 'Confirmadas' },
-              { key: 'SCHEDULED', label: 'Pendentes' },
               { key: 'CANCELLED', label: 'Canceladas' },
             ] as const
           ).map((tab) => (
@@ -284,6 +221,7 @@ export function PatientAgendaView({ initialData }: Props) {
               currentDate={currentDate}
               selectedDate={selectedDate}
               appointments={filteredAppointments}
+              virtualOccurrences={virtualOccurrences}
               perspective="patient"
               onSelectDate={handleSelectDate}
               onViewAppointment={openDetailsModal}
@@ -318,7 +256,6 @@ export function PatientAgendaView({ initialData }: Props) {
                       key={app.id}
                       appointment={app}
                       perspective="patient"
-                      onAccept={handleAcceptAppointment}
                       onCancel={openCancelModal}
                       onViewDetails={openDetailsModal}
                       isMutating={isMutating}
@@ -354,7 +291,6 @@ export function PatientAgendaView({ initialData }: Props) {
                   key={app.id}
                   appointment={app}
                   perspective="patient"
-                  onAccept={handleAcceptAppointment}
                   onCancel={openCancelModal}
                   onViewDetails={openDetailsModal}
                   isMutating={isMutating}
@@ -379,7 +315,6 @@ export function PatientAgendaView({ initialData }: Props) {
         perspective="patient"
         isOpen={!!detailsModalAppointment}
         onClose={closeDetailsModal}
-        onAccept={handleAcceptAppointment}
         onCancel={openCancelModal}
         isMutating={isMutating}
       />

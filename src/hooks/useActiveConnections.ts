@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import type { ActiveConnectionDTO, PaginatedResponse } from '@/types/connection';
 import { getActiveConnectionsAction } from '@/actions/connections';
 import { removeConnectionAction } from '@/actions/connections';
+import { updateTreatmentLinkPriceAction } from '@/actions/treatmentLinks';
 
 interface UseActiveConnectionsOptions {
   initialData?: PaginatedResponse<ActiveConnectionDTO>;
@@ -63,6 +64,27 @@ export function useActiveConnections({
     });
   }, [connections]);
 
+  const updatePrice = useCallback(
+    async (treatmentLinkId: string, price: number): Promise<boolean> => {
+      const result = await updateTreatmentLinkPriceAction(treatmentLinkId, price);
+      if (result.error) {
+        toast.error(result.error);
+        return false;
+      }
+
+      setConnections((prev) =>
+        prev.map((c) =>
+          c.user.treatmentLinkId === treatmentLinkId
+            ? { ...c, user: { ...c.user, defaultPrice: price } }
+            : c
+        )
+      );
+      toast.success('Preço padrão atualizado com sucesso.');
+      return true;
+    },
+    []
+  );
+
   return {
     connections,
     pageMeta,
@@ -72,5 +94,6 @@ export function useActiveConnections({
     error,
     fetchPage,
     disconnect,
+    updatePrice,
   };
 }

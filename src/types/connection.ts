@@ -44,6 +44,8 @@ export interface ConnectedUserDTO {
   specialties?: SpecialtyDTO[];
   experienceTime?: number;
   description?: string;
+  treatmentLinkId?: string;
+  defaultPrice?: number;
 }
 
 export interface ActiveConnectionDTO {

@@ -160,6 +160,7 @@ export function ConnectionList({
     error,
     fetchPage,
     disconnect,
+    updatePrice,
   } = useActiveConnections({ initialData, initialPage });
 
   // Disconnect modal state
@@ -209,6 +210,7 @@ export function ConnectionList({
               key={connection.connectionId}
               connection={connection}
               onDisconnect={handleDisconnectRequest}
+              onUpdatePrice={updatePrice}
               isMutating={isMutating}
             />
           ))}
