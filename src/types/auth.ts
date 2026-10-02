@@ -1,11 +1,19 @@
 export type BackendRole = 'ADMIN' | 'PSYCHOLOGIST' | 'PATIENT';
 
-/** Resposta de POST /auth/login e POST /auth/change-password */
+/**
+ * Resposta de POST /auth/login, /auth/refresh e /auth/change-password.
+ * `refreshToken` nulo = manter o cookie de refresh atual (renovação paralela).
+ * Sem `rememberMe`, os dois cookies são de sessão do navegador.
+ */
 export interface AuthResponse {
   token: string;
   expiresAt: string;
+  refreshToken: string | null;
+  refreshExpiresAt: string;
+  rememberMe: boolean;
   role: BackendRole;
   mustChangePassword: boolean;
+  consentRequired: boolean;
 }
 
 export interface JwtPayload { role: string; sub: string; exp?: number; }

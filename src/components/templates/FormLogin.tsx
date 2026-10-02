@@ -13,9 +13,11 @@ interface FormLoginProps {
     registered?: boolean;
     /** E-mail recém-cadastrado, para pré-preencher o campo */
     initialEmail?: string;
+    /** Aviso de sessão encerrada: "expirada" (servidor recusou a sessão) ou "todos" (saiu de todos os dispositivos) */
+    sessionNotice?: 'expired' | 'all-devices' | null;
 }
 
-export function FormLogin({ registered = false, initialEmail = "" }: FormLoginProps) {
+export function FormLogin({ registered = false, initialEmail = "", sessionNotice = null }: FormLoginProps) {
     const router = useRouter();
     const [view, setView] = useState<'login' | 'recover'>('login');
     const [errorMessage, setErrorMessage] = useState("");
@@ -166,6 +168,14 @@ export function FormLogin({ registered = false, initialEmail = "" }: FormLoginPr
                 </div>
             )}
 
+            {sessionNotice && (
+                <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {sessionNotice === 'expired'
+                        ? 'Sua sessão expirou ou foi encerrada. Entre novamente para continuar.'
+                        : 'Você saiu da sua conta em todos os dispositivos.'}
+                </div>
+            )}
+
             <form onSubmit={handleLogin} className="flex flex-col gap-5 mt-4" aria-busy={loading}>
                 {errorMessage && (
                     <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -178,9 +188,14 @@ export function FormLogin({ registered = false, initialEmail = "" }: FormLoginPr
                 </div>
 
                 <div className="flex flex-col text-center w-full gap-4">
-                    <div className="flex gap-2 justify-center">
-                        <input className="w-4" type="checkbox" name="keeploggedin" id="keeploggedin" />
-                        <label htmlFor="keeploggedin">Manter login</label>
+                    <div className="flex flex-col items-center gap-1">
+                        <div className="flex gap-2 justify-center items-center">
+                            <input className="w-4 h-4" type="checkbox" name="keeploggedin" id="keeploggedin" aria-describedby="keeploggedin-hint" />
+                            <label htmlFor="keeploggedin">Manter conectado neste dispositivo</label>
+                        </div>
+                        <p id="keeploggedin-hint" className="text-xs text-slate-500">
+                            Não use em computadores compartilhados. Sem esta opção, a sessão termina ao fechar o navegador.
+                        </p>
                     </div>
 
                     <button type="button" onClick={() => { setErrorMessage(''); setView('recover'); }} className="text-sm italic cursor-pointer hover:text-[var(--primary)] transition-colors">

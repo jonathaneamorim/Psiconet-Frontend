@@ -47,7 +47,7 @@ export async function getHeaderUserAction(): Promise<HeaderUser | null> {
 
   const path = role === RoleEnum.PATIENT ? '/patients/me' : '/psychologists/me';
   try {
-    const result = await apiClient.get<UserProfile>(path, { skipPasswordRedirect: true });
+    const result = await apiClient.get<UserProfile>(path, { background: true });
     if (!result.data) return null;
     return { fullName: result.data.fullName ?? null, photoUrl: result.data.photoUrl ?? null };
   } catch {

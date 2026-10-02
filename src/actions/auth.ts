@@ -29,11 +29,16 @@ export async function loginAction(formData: FormData, keepLoggedIn: boolean): Pr
     return { error: 'Token inválido recebido do servidor.' };
   }
 
-  await cookieService.setAuthToken(result.data.token, keepLoggedIn, result.data.expiresAt);
+  // Durações dos cookies vêm do backend (ADR 014): sem "manter conectado" são cookies de sessão.
+  await cookieService.setSession(result.data);
 
   // Senha temporária (ex.: administrador recém-criado): o backend bloqueia as demais rotas até a troca.
   if (result.data.mustChangePassword) {
     return { success: true, redirectTo: `${ROUTES.CHANGE_PASSWORD}?obrigatoria=1` };
+  }
+  // Termos/Privacidade novos ou nunca aceitos: aceite antes de qualquer outra tela (ADR 013).
+  if (result.data.consentRequired) {
+    return { success: true, redirectTo: ROUTES.ACCEPT_TERMS };
   }
   return { success: true, redirectTo: `/${userRole}/dashboard` };
 }
@@ -53,9 +58,10 @@ export async function changePasswordAction(formData: FormData): Promise<ActionRe
     return { error: result.error ?? 'Não foi possível alterar a senha.', fields: result.fieldErrors };
   }
 
-  // O backend invalida os tokens antigos e devolve um novo para a sessão atual
-  await cookieService.setAuthToken(result.data.token, false, result.data.expiresAt);
+  // O backend encerra as outras sessões e devolve uma nova para este dispositivo
+  await cookieService.setSession(result.data);
   const role = decodeRoleFromToken(result.data.token);
+  if (role && result.data.consentRequired) return { success: true, redirectTo: ROUTES.ACCEPT_TERMS };
   return { success: true, redirectTo: role ? `/${role}/dashboard` : ROUTES.LOGIN };
 }
 

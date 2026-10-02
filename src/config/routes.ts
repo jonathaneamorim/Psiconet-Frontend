@@ -26,7 +26,14 @@ export const ROUTES = {
     PSYCHOLOGIST_MEDICAL_RECORDS: '/psychologist/medical-records',
     PATIENT_MEDICAL_RECORDS: '/patient/medical-records',
     CHANGE_PASSWORD: '/change-password',
+    TERMS: '/terms',
+    PRIVACY: '/privacy',
+    COOKIES: '/cookies',
+    ACCEPT_TERMS: '/accept-terms',
 } as const;
 
 export const PUBLIC_ROUTES = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.REGISTER, ROUTES.ABOUT] as const;
 export const AUTH_ROUTES = [ROUTES.LOGIN, ROUTES.REGISTER] as const;
+
+/** Documentos legais: abertos a TODOS, logados ou não (não redirecionam para o dashboard). */
+export const LEGAL_ROUTES = [ROUTES.TERMS, ROUTES.PRIVACY, ROUTES.COOKIES] as const;

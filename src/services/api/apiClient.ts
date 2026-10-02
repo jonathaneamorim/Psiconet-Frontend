@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { API_URL } from '@/constants/api';
 import { cookieService } from '@/services/cookieService';
+import { SESSION_EXPIRED_LOGIN_PATH } from '@/lib/sessionCookies';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -9,8 +10,11 @@ interface RequestOptions {
   body?: unknown;
   cache?: RequestCache;
   public?: boolean;
-  /** Não redireciona para a troca de senha (ex.: polling em segundo plano do sino de notificações). */
-  skipPasswordRedirect?: boolean;
+  /**
+   * Chamada em segundo plano (polling do sino, dados da navbar no layout): nunca redireciona —
+   * nem para a troca de senha, nem para o aceite de termos, nem para o login com sessão expirada.
+   */
+  background?: boolean;
 }
 
 export interface ApiResult<T = void> {
@@ -71,6 +75,18 @@ async function clientIp(): Promise<string | null> {
   }
 }
 
+/**
+ * Navegador do usuário, repassado em X-Client-User-Agent (prova de aceite e sessões guardam só um
+ * resumo, ex.: "Chrome 141 · Windows"). Como o X-Forwarded-For, só é aceito de proxy confiável.
+ */
+async function clientUserAgent(): Promise<string | null> {
+  try {
+    return (await headers()).get('user-agent')?.slice(0, 512) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Sessão inválida no backend (usuário inativado, logout em outro dispositivo, token expirado). */
 async function clearInvalidSession() {
   try {
@@ -104,17 +120,22 @@ async function toErrorResult<T>(response: Response, isPublic: boolean): Promise<
 }
 
 const PASSWORD_CHANGE_PATH = '/change-password?obrigatoria=1';
+const ACCEPT_TERMS_PATH = '/accept-terms';
 
 async function send<T>(
   method: HttpMethod,
   path: string,
-  init: { body?: BodyInit; json?: boolean; cache?: RequestCache; public?: boolean; skipPasswordRedirect?: boolean }
+  init: { body?: BodyInit; json?: boolean; cache?: RequestCache; public?: boolean; background?: boolean }
 ): Promise<ApiResult<T>> {
   const result = await sendRaw<T>(method, path, init);
-  // Senha temporária pendente: o backend bloqueia tudo até a troca. Fora do try/catch de propósito,
-  // pois redirect() funciona lançando uma exceção de controle do Next.
-  if (result.code === 'PASSWORD_CHANGE_REQUIRED' && !init.skipPasswordRedirect) {
-    redirect(PASSWORD_CHANGE_PATH);
+  // Fora do try/catch de propósito, pois redirect() funciona lançando uma exceção de controle do Next.
+  if (!init.background) {
+    // Senha temporária pendente: o backend bloqueia tudo até a troca.
+    if (result.code === 'PASSWORD_CHANGE_REQUIRED') redirect(PASSWORD_CHANGE_PATH);
+    // Termos/Privacidade novos ou nunca aceitos: o backend bloqueia tudo até o aceite (ADR 013).
+    if (result.code === 'CONSENT_REQUIRED') redirect(ACCEPT_TERMS_PATH);
+    // Sessão recusada pelo backend (expirada, revogada, conta inativada): login com aviso.
+    if (result.status === 401 && !init.public) redirect(SESSION_EXPIRED_LOGIN_PATH);
   }
   return result;
 }
@@ -135,6 +156,8 @@ async function sendRaw<T>(
 
   const ip = await clientIp();
   if (ip) requestHeaders['X-Forwarded-For'] = ip;
+  const userAgent = await clientUserAgent();
+  if (userAgent) requestHeaders['X-Client-User-Agent'] = userAgent;
 
   try {
     const response = await fetch(`${API_URL}${path}`, {
@@ -167,7 +190,7 @@ async function request<T>(method: HttpMethod, path: string, options: RequestOpti
     json: true,
     cache: options.cache,
     public: options.public,
-    skipPasswordRedirect: options.skipPasswordRedirect,
+    background: options.background,
   });
 }
 

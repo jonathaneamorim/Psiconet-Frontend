@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { COOKIE_TOKEN } from '@/constants/cookies';
-import { ACCESS_TIME_MINUTES, KEEP_LOGGED_TIME_DAYS } from '@/constants/auth';
+import { buildSessionCookies, SESSION_COOKIE_NAMES } from '@/lib/sessionCookies';
+import type { AuthResponse } from '@/types/auth';
 import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
 // opções padrão de segurança
@@ -38,23 +39,16 @@ export const cookieService = {
     return this.get(COOKIE_TOKEN);
   },
 
-  /*
-   * O cookie acompanha a expiração REAL do token (expiresAt devolvido pelo backend), para não
-   * existir cookie "vivo" com token já expirado. Sem expiresAt, cai nos tempos configurados.
-   */
-  async setAuthToken(token: string, remember: boolean = false, expiresAt?: string): Promise<void> {
-    const fallbackSeconds = remember
-      ? 24 * 60 * 60 * KEEP_LOGGED_TIME_DAYS
-      : 60 * ACCESS_TIME_MINUTES;
-    const fromToken = expiresAt ? Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000) : NaN;
-    const maxAgeSeconds = Number.isFinite(fromToken) && fromToken > 0 ? fromToken : fallbackSeconds;
-
-    await this.set(COOKIE_TOKEN, token, {
-      maxAge: maxAgeSeconds,
-    });
+  /** Grava token de acesso + refresh com as expirações devolvidas pela API (ADR 014). */
+  async setSession(auth: AuthResponse): Promise<void> {
+    const cookieStore = await cookies();
+    for (const c of buildSessionCookies(auth)) {
+      cookieStore.set(c.name, c.value, c.options);
+    }
   },
 
   async clearAuth(): Promise<void> {
-    await this.remove(COOKIE_TOKEN);
+    const cookieStore = await cookies();
+    for (const name of SESSION_COOKIE_NAMES) cookieStore.delete(name);
   },
 };

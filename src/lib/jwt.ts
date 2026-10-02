@@ -23,12 +23,12 @@ export function decodeTokenPayload(token: string): JwtPayload | null {
     }
 }
 
-/** true se o token tem `exp` no passado (com 5s de folga). */
-export function isTokenExpired(token: string, nowMs: number = Date.now()): boolean {
+/** true se o token tem `exp` no passado (com folga, padrão 5 s). */
+export function isTokenExpired(token: string, nowMs: number = Date.now(), marginMs: number = 5000): boolean {
     const payload = decodeTokenPayload(token);
     if (!payload) return true;
     if (typeof payload.exp !== 'number') return false;
-    return payload.exp * 1000 <= nowMs + 5000;
+    return payload.exp * 1000 <= nowMs + marginMs;
 }
 
 /**
