@@ -23,6 +23,8 @@ export const ROUTES = {
     PSYCHOLOGIST_SETTINGS: '/psychologist/settings',
     PATIENT_SETTINGS: '/patient/settings',
     NOTIFICATIONS: '/notifications',
+    PSYCHOLOGIST_MEDICAL_RECORDS: '/psychologist/medical-records',
+    PATIENT_MEDICAL_RECORDS: '/patient/medical-records',
     CHANGE_PASSWORD: '/change-password',
 } as const;
 
