@@ -4,22 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Check, Loader2, BellOff } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
-import type { NotificationDTO, NotificationReferenceType } from '@/types/notification';
+import type { NotificationDTO } from '@/types/notification';
 import { RoleEnum } from '@/enums/RoleEnum';
-
-function resolveNotificationRoute(
-  referenceType: NotificationReferenceType,
-  role: RoleEnum | null
-): string | null {
-  if (!role || (role !== RoleEnum.PATIENT && role !== RoleEnum.PSYCHOLOGIST)) return null;
-
-  const routes: Record<string, string> = {
-    APPOINTMENT: `/${role}/appointments`,
-    CONNECTION: `/${role}/connections`,
-    PAYMENT: `/${role}/payments`,
-  };
-  return routes[referenceType] ?? null;
-}
+import { resolveNotificationRoute } from '@/lib/notificationRoutes';
 
 function formatRelativeTime(isoString: string): string {
   const diffMs = Date.now() - new Date(isoString).getTime();
@@ -38,7 +25,7 @@ function formatRelativeTime(isoString: string): string {
 
 interface NotificationItemProps {
   notification: NotificationDTO;
-  onRead: (id: string, referenceType: NotificationReferenceType) => void;
+  onRead: (notification: NotificationDTO) => void;
 }
 
 function NotificationItem({ notification, onRead }: NotificationItemProps) {
@@ -47,7 +34,7 @@ function NotificationItem({ notification, onRead }: NotificationItemProps) {
   return (
     <button
       type="button"
-      onClick={() => onRead(id, referenceType)}
+      onClick={() => onRead(notification)}
       className={`
         w-full text-left group flex items-start gap-3 px-4 py-3 rounded-xl
         transition-all duration-150 cursor-pointer
@@ -136,9 +123,9 @@ export function NotificationsDropdown({ userRole }: Props) {
 
   // ── Handle notification click: mark as read + navigate ───────────────────
   const handleNotificationClick = useCallback(
-    (id: string, referenceType: NotificationReferenceType) => {
-      markAsRead(id);
-      const route = resolveNotificationRoute(referenceType, userRole);
+    (notification: NotificationDTO) => {
+      markAsRead(notification.id);
+      const route = resolveNotificationRoute(notification, userRole);
       if (route) {
         setIsOpen(false);
         router.push(route);

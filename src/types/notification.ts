@@ -2,6 +2,9 @@ export type NotificationReferenceType =
   | 'APPOINTMENT'
   | 'CONNECTION'
   | 'PAYMENT'
+  | 'TICKET'
+  | 'ANNOUNCEMENT'
+  | 'MEDICAL_RECORD'
   | string;
 
 export type NotificationType =
@@ -13,7 +16,13 @@ export type NotificationType =
   | 'PAYMENT_RECEIPT_SUBMITTED'
   | 'PAYMENT_APPROVED'
   | 'PAYMENT_REJECTED'
-  | 'PAYMENT_DISPUTED';
+  | 'PAYMENT_DISPUTED'
+  | 'TICKET_REPLIED'
+  | 'TICKET_CLOSED'
+  | 'ADMIN_ANNOUNCEMENT'
+  | 'MEDICAL_RECORD_ACCESS_REQUESTED'
+  | 'MEDICAL_RECORD_ACCESS_GRANTED'
+  | 'MEDICAL_RECORD_ACCESS_DENIED';
 
 export interface NotificationDTO {
   id: string;
@@ -32,4 +41,6 @@ export interface NotificationPreferenceDTO {
   appointmentEnabled: boolean;
   connectionEnabled: boolean;
   paymentEnabled: boolean;
+  /** Somente leitura: categorias que não podem ser desativadas (SUPPORT, ANNOUNCEMENT, MEDICAL_RECORD) */
+  mandatoryCategories?: string[];
 }

@@ -20,12 +20,10 @@ export async function markNotificationAsReadAction(id: string): Promise<void> {
   await apiClient.patch(`/notifications/${id}/read`);
 }
 
-/*
- * O backend não expõe um endpoint de bulk-read (`PATCH /notifications/read-all` não existe,
- * apenas `PATCH /notifications/{id}/read`). Marca cada notificação não lida individualmente.
- */
-export async function markAllNotificationsAsReadAction(unreadIds: string[]): Promise<void> {
-  await Promise.allSettled(unreadIds.map((id) => apiClient.patch(`/notifications/${id}/read`)));
+/* Marca todas as notificações do usuário como lidas em uma única chamada (PATCH /notifications/read-all) */
+export async function markAllNotificationsAsReadAction(): Promise<void> {
+  const result = await apiClient.patch('/notifications/read-all');
+  if (result.error) throw new Error(result.error);
 }
 
 export async function getNotificationPreferencesAction(): Promise<{ data?: NotificationPreferenceDTO; error?: string }> {
