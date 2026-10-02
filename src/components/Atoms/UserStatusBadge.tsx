@@ -16,14 +16,14 @@ const statusConfig: Record<
     text: 'text-slate-500',
     dot: 'bg-slate-400',
   },
-  PENDING: {
+  PENDING_VERIFICATION: {
     label: 'Pendente',
     bg: 'bg-amber-50',
     text: 'text-amber-700',
     dot: 'bg-amber-500',
   },
-  SUSPENDED: {
-    label: 'Suspenso',
+  BLOCKED: {
+    label: 'Bloqueado',
     bg: 'bg-red-50',
     text: 'text-red-700',
     dot: 'bg-red-500',

@@ -6,6 +6,7 @@ import { Button } from "../Atoms/Button";
 import { RoleEnum } from "@/enums/RoleEnum";
 import { logoutAction } from "@/actions/logout";
 import { NAV_ITEMS } from "@/config/navigation";
+import { ROUTES } from "@/config/routes";
 import { NotificationsDropdown } from "./NotificationsDropdown";
 import toast from "react-hot-toast";
 
@@ -44,7 +45,10 @@ export function Header({ userRole }: HeaderProps) {
 
     const navItems = userRole ? (NAV_ITEMS[userRole] ?? []) : [];
     // Paciente ainda não tem página de configurações própria (ver NAV_ITEMS).
-    const settingsHref = isPsychologist ? '/psychologist/settings' : null;
+    const settingsHref = isPsychologist ? '/psychologist/settings' : isPatient ? '/patient/settings' : null;
+    // Suporte: pacientes e psicólogos abrem chamados; o admin atende em /admin/tickets.
+    const supportHref = isPatient || isPsychologist ? ROUTES.SUPPORT : null;
+    const profileHref = isAdmin ? ROUTES.ADMIN_DASHBOARD : `/${userRole}/profile`;
 
     return (
         <header className="w-full h-18 bg-white/80 backdrop-blur-md fixed top-0 left-0 px-4 sm:px-8 z-50 border-b border-slate-200/60 shadow-sm transition-all">
@@ -98,6 +102,8 @@ export function Header({ userRole }: HeaderProps) {
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 className="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all focus:outline-none"
                                 aria-label="Menu do Usuário"
+                                aria-haspopup="menu"
+                                aria-expanded={isProfileOpen}
                             >
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-50 flex items-center justify-center text-[var(--primary)] ring-2 ring-white shadow-sm">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,7 +127,7 @@ export function Header({ userRole }: HeaderProps) {
                                 </div>
                                 <ul className="py-2 text-sm text-slate-600 font-medium">
                                     <li>
-                                        <Link href={`/${userRole}/profile`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 hover:text-[var(--primary)] transition-colors" onClick={() => setIsProfileOpen(false)}>
+                                        <Link href={profileHref} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 hover:text-[var(--primary)] transition-colors" onClick={() => setIsProfileOpen(false)}>
                                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                             Meu Perfil
                                         </Link>
@@ -145,6 +151,20 @@ export function Header({ userRole }: HeaderProps) {
                                             </div>
                                         )}
                                     </li>
+                                    <li>
+                                        <Link href={ROUTES.CHANGE_PASSWORD} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 hover:text-[var(--primary)] transition-colors" onClick={() => setIsProfileOpen(false)}>
+                                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                                            Alterar senha
+                                        </Link>
+                                    </li>
+                                    {supportHref && (
+                                        <li>
+                                            <Link href={supportHref} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 hover:text-[var(--primary)] transition-colors" onClick={() => setIsProfileOpen(false)}>
+                                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                Suporte · Meus chamados
+                                            </Link>
+                                        </li>
+                                    )}
                                 </ul>
                                 <div className="border-t border-slate-100 py-2">
                                     <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors font-medium">
@@ -243,7 +263,7 @@ export function Header({ userRole }: HeaderProps) {
                                 {/* Mobile Profile Actions */}
                                 <div className="flex flex-col gap-1">
                                     <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">Opções de Perfil</h3>
-                                    <Link href={`/${userRole}/profile`} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
+                                    <Link href={profileHref} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
                                         <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                         Meu Perfil
                                     </Link>
@@ -265,6 +285,12 @@ export function Header({ userRole }: HeaderProps) {
                                         </div>
                                     )}
 
+                                    {supportHref && (
+                                        <Link href={supportHref} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
+                                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            Suporte · Meus chamados
+                                        </Link>
+                                    )}
                                     <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-3 mt-2 rounded-xl bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition-colors">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                                         Sair da Conta

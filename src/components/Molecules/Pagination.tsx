@@ -7,9 +7,13 @@ interface Props {
   totalPages: number;
   totalElements: number;
   pageSize: number;
+  /** Parâmetros de busca/filtro a preservar ao trocar de página */
+  query?: Record<string, string | undefined>;
+  /** Rótulo do item no plural (padrão: "usuários") */
+  itemLabel?: string;
 }
 
-export function Pagination({ currentPage, totalPages, totalElements, pageSize }: Props) {
+export function Pagination({ currentPage, totalPages, totalElements, pageSize, query = {}, itemLabel = 'usuários' }: Props) {
   // Guard against undefined/NaN values coming from the backend
   const safeCurrent = Number.isFinite(currentPage) ? currentPage : 0;
   const safeTotal = Number.isFinite(totalPages) ? totalPages : 0;
@@ -19,7 +23,12 @@ export function Pagination({ currentPage, totalPages, totalElements, pageSize }:
   const end = Math.min((safeCurrent + 1) * pageSize, safeElements);
 
   function buildHref(page: number) {
-    return `?page=${page}`;
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    params.set('page', String(page));
+    return `?${params.toString()}`;
   }
 
   // Gera array de páginas visíveis (máx 7 ao redor da atual)
@@ -47,7 +56,7 @@ export function Pagination({ currentPage, totalPages, totalElements, pageSize }:
       {/* Contagem */}
       <p className="text-xs text-slate-400">
         Exibindo <span className="font-medium text-slate-600">{start}–{end}</span> de{' '}
-        <span className="font-medium text-slate-600">{safeElements}</span> usuários
+        <span className="font-medium text-slate-600">{safeElements}</span> {itemLabel}
       </p>
 
       {/* Navegação */}

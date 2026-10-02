@@ -42,6 +42,13 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
+    // Suporte: só pacientes e psicólogos (admin atende pelos chamados em /admin/tickets)
+    if (pathname === ROUTES.SUPPORT || pathname.startsWith(`${ROUTES.SUPPORT}/`)) {
+        return userRole === RoleEnum.ADMIN
+            ? NextResponse.redirect(new URL(ROUTES.ADMIN_TICKETS, request.url))
+            : NextResponse.next();
+    }
+
     const requestedRole = pathname.split('/')[1] as RoleEnum;
 
     if (!Object.values(RoleEnum).includes(requestedRole)) {
@@ -66,6 +73,8 @@ export const config = {
         '/about',
         '/notifications/:path*',
         '/change-password',
+        '/support',
+        '/support/:path*',
         '/admin/:path*',
         '/psychologist/:path*',
         '/patient/:path*',
