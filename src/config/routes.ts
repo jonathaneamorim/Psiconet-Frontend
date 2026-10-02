@@ -20,6 +20,7 @@ export const ROUTES = {
     PSYCHOLOGIST_SETTINGS: '/psychologist/settings',
     PATIENT_SETTINGS: '/patient/settings',
     NOTIFICATIONS: '/notifications',
+    CHANGE_PASSWORD: '/change-password',
 } as const;
 
 export const PUBLIC_ROUTES = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.REGISTER, ROUTES.ABOUT] as const;

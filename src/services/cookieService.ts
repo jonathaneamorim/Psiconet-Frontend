@@ -38,10 +38,16 @@ export const cookieService = {
     return this.get(COOKIE_TOKEN);
   },
 
-  async setAuthToken(token: string, remember: boolean = false): Promise<void> {
-    const maxAgeSeconds = remember
+  /*
+   * O cookie acompanha a expiração REAL do token (expiresAt devolvido pelo backend), para não
+   * existir cookie "vivo" com token já expirado. Sem expiresAt, cai nos tempos configurados.
+   */
+  async setAuthToken(token: string, remember: boolean = false, expiresAt?: string): Promise<void> {
+    const fallbackSeconds = remember
       ? 24 * 60 * 60 * KEEP_LOGGED_TIME_DAYS
       : 60 * ACCESS_TIME_MINUTES;
+    const fromToken = expiresAt ? Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000) : NaN;
+    const maxAgeSeconds = Number.isFinite(fromToken) && fromToken > 0 ? fromToken : fallbackSeconds;
 
     await this.set(COOKIE_TOKEN, token, {
       maxAge: maxAgeSeconds,

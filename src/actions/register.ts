@@ -4,16 +4,16 @@ import { ROUTES } from '@/config/routes';
 import { RoleEnum } from '@/enums/RoleEnum';
 import { normalizeCpf } from '@/lib/cpf';
 import { apiClient } from '@/services/api/apiClient';
+import type { ActionResult } from '@/types/auth';
 
-type RegisterResponse = {
-  success?: boolean;
-  redirectTo?: string;
-  error?: string;
-  fields?: Record<string, string>;
-};
+interface RegisterResponse {
+  message: string;
+  nextStep: 'LOGIN';
+}
 
-export async function registerAction(formData: FormData): Promise<RegisterResponse> {
-  const role = (formData.get('userRole') || formData.get('role')) as RoleEnum;
+export async function registerAction(formData: FormData): Promise<ActionResult> {
+  // O papel só escolhe o endpoint; o backend nunca aceita "role" no corpo.
+  const role = formData.get('userRole') === RoleEnum.PSYCHOLOGIST ? RoleEnum.PSYCHOLOGIST : RoleEnum.PATIENT;
 
   const path =
     role === RoleEnum.PATIENT
@@ -22,20 +22,24 @@ export async function registerAction(formData: FormData): Promise<RegisterRespon
 
   const payload = {
     fullName: formData.get('fullName')?.toString().trim(),
-    email: formData.get('email')?.toString().trim(),
+    email: formData.get('email')?.toString().trim().toLowerCase(),
     cpf: normalizeCpf(formData.get('cpf')?.toString() ?? ''),
-    birthDate: formData.get('birthDate')?.toString().trim(),
+    birthDate: formData.get('birthDate')?.toString().trim() || null,
     password: formData.get('password')?.toString(),
     ...(role === RoleEnum.PSYCHOLOGIST && {
       crp: formData.get('crp')?.toString().trim(),
     }),
   };
 
-  const result = await apiClient.post(path, payload, { public: true });
+  const result = await apiClient.post<RegisterResponse>(path, payload, { public: true });
 
   if (result.error) {
-    return { error: result.error };
+    return { error: result.error, fields: result.fieldErrors, code: result.code };
   }
 
-  return { success: true, redirectTo: ROUTES.LOGIN };
+  return {
+    success: true,
+    message: result.data?.message ?? 'Conta criada com sucesso! Faça login para continuar.',
+    redirectTo: `${ROUTES.LOGIN}?cadastro=sucesso&email=${encodeURIComponent(payload.email ?? '')}`,
+  };
 }

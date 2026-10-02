@@ -5,13 +5,13 @@ import { revalidatePath } from 'next/cache';
 import type { NotificationDTO, NotificationPreferenceDTO, UnreadCount } from '@/types/notification';
 
 export async function getUnreadCountAction(): Promise<number> {
-  const result = await apiClient.get<UnreadCount>('/notifications/unread-count');
+  const result = await apiClient.get<UnreadCount>('/notifications/unread-count', { skipPasswordRedirect: true });
   if (result.error || result.data === undefined || result.data === null) return 0;
   return typeof result.data === 'number' ? result.data : 0;
 }
 
 export async function getNotificationsAction(): Promise<NotificationDTO[]> {
-  const result = await apiClient.get<NotificationDTO[]>('/notifications');
+  const result = await apiClient.get<NotificationDTO[]>('/notifications', { skipPasswordRedirect: true });
   if (result.error || !result.data) return [];
   return Array.isArray(result.data) ? result.data : [];
 }

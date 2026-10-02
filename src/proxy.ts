@@ -19,7 +19,13 @@ export function proxy(request: NextRequest) {
 
     const userRole = decodeRoleFromToken(token);
 
+    // Token inválido ou expirado: limpa o cookie e manda para o login
     if (!userRole) {
+        if (isPublicPage) {
+            const response = NextResponse.next();
+            response.cookies.delete(COOKIE_TOKEN);
+            return response;
+        }
         const response = NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
         response.cookies.delete(COOKIE_TOKEN);
         return response;
@@ -31,7 +37,7 @@ export function proxy(request: NextRequest) {
     }
 
     // Rotas acessíveis por qualquer role autenticado
-    const isSharedAuthRoute = pathname.startsWith('/notifications');
+    const isSharedAuthRoute = pathname.startsWith('/notifications') || pathname === ROUTES.CHANGE_PASSWORD;
     if (isSharedAuthRoute) {
         return NextResponse.next();
     }
@@ -59,6 +65,7 @@ export const config = {
         '/register',
         '/about',
         '/notifications/:path*',
+        '/change-password',
         '/admin/:path*',
         '/psychologist/:path*',
         '/patient/:path*',

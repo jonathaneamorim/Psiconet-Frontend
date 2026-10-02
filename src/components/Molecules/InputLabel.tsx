@@ -10,16 +10,19 @@ type Props = {
     placeholder?: string;
     error?: string;
     onClearError?: () => void;
+    defaultValue?: string;
+    autoComplete?: string;
+    maxLength?: number;
 };
 
-export function InputLabel({ fieldName, name, inputType, required, labelStyle, inputStyle, placeholder, error, onClearError }: Props) {
+export function InputLabel({ fieldName, name, inputType, required, labelStyle, inputStyle, placeholder, error, onClearError, defaultValue, autoComplete, maxLength }: Props) {
 
     const id = useId();
 
     return (
          <div className="flex flex-col gap-1">
             {error && (
-                <span className="mt-2 text-sm font-medium text-red-500 bg-red-50 border border-red-200 rounded-md px-3 py-1.5 animate-pulse-once">
+                <span id={`${id}-error`} role="alert" className="mt-2 text-sm font-medium text-red-500 bg-red-50 border border-red-200 rounded-md px-3 py-1.5 animate-pulse-once">
                     ⚠ {error}
                 </span>
             )}
@@ -38,6 +41,11 @@ export function InputLabel({ fieldName, name, inputType, required, labelStyle, i
                 } ${inputStyle || ''}`} 
                 required={!!required} 
                 placeholder={placeholder}
+                defaultValue={defaultValue}
+                autoComplete={autoComplete}
+                maxLength={maxLength}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? `${id}-error` : undefined}
                 onFocus={onClearError}
             />
         </div>

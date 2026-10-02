@@ -1,62 +1,68 @@
 'use server';
 
-import { API_URL } from '@/constants/api';
+import { apiClient } from '@/services/api/apiClient';
 import { cookieService } from '@/services/cookieService';
 import { decodeRoleFromToken } from '@/lib/jwt';
-import type { AuthResponse } from '@/types/auth';
+import { ROUTES } from '@/config/routes';
+import type { ActionResult, AuthResponse } from '@/types/auth';
 
-export async function loginAction(formData: FormData, keepLoggedIn: boolean) {
+export async function loginAction(formData: FormData, keepLoggedIn: boolean): Promise<ActionResult> {
   const email = formData.get('email')?.toString().trim();
-  const password = formData.get('password')?.toString().trim();
+  const password = formData.get('password')?.toString();
 
   if (!email || !password) {
     return { error: 'E-mail e senha são obrigatórios.' };
   }
 
-  try {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+  const result = await apiClient.post<AuthResponse>(
+    '/auth/login',
+    { email, password, rememberMe: keepLoggedIn },
+    { public: true }
+  );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      return { error: errorData?.message || 'Credenciais inválidas ou usuário não encontrado.' };
-    }
-
-    const data: AuthResponse = await response.json();
-    const userRole = decodeRoleFromToken(data.token);
-
-    if (!userRole) {
-      return { error: 'Token inválido recebido do servidor.' };
-    }
-
-    await cookieService.setAuthToken(data.token, keepLoggedIn);
-    return { success: true, redirectTo: `/${userRole}/dashboard` };
-  } catch {
-    return { error: 'Erro de conexão com o servidor.' };
+  if (result.error || !result.data) {
+    return { error: result.error ?? 'Não foi possível fazer login.', code: result.code };
   }
+
+  const userRole = decodeRoleFromToken(result.data.token);
+  if (!userRole) {
+    return { error: 'Token inválido recebido do servidor.' };
+  }
+
+  await cookieService.setAuthToken(result.data.token, keepLoggedIn, result.data.expiresAt);
+
+  // Senha temporária (ex.: administrador recém-criado): o backend bloqueia as demais rotas até a troca.
+  if (result.data.mustChangePassword) {
+    return { success: true, redirectTo: `${ROUTES.CHANGE_PASSWORD}?obrigatoria=1` };
+  }
+  return { success: true, redirectTo: `/${userRole}/dashboard` };
 }
 
-/* Solicita o envio do código de redefinição de senha por e-mail (POST /auth/forgot-password) */
-export async function forgotPasswordAction(email: string): Promise<{ success?: boolean; error?: string }> {
-  try {
-    const response = await fetch(`${API_URL}/auth/forgot-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
+/* Troca de senha do usuário logado (inclui a troca obrigatória do primeiro acesso) */
+export async function changePasswordAction(formData: FormData): Promise<ActionResult> {
+  const currentPassword = formData.get('currentPassword')?.toString() ?? '';
+  const newPassword = formData.get('newPassword')?.toString() ?? '';
+  const confirmPassword = formData.get('confirmPassword')?.toString() ?? '';
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      return { error: errorData?.message || 'Não foi possível processar a solicitação.' };
-    }
-
-    return { success: true };
-  } catch {
-    return { error: 'Erro de conexão com o servidor.' };
+  if (newPassword !== confirmPassword) {
+    return { error: 'As senhas não coincidem.', fields: { confirmPassword: 'As senhas não coincidem.' } };
   }
+
+  const result = await apiClient.post<AuthResponse>('/auth/change-password', { currentPassword, newPassword });
+  if (result.error || !result.data) {
+    return { error: result.error ?? 'Não foi possível alterar a senha.', fields: result.fieldErrors };
+  }
+
+  // O backend invalida os tokens antigos e devolve um novo para a sessão atual
+  await cookieService.setAuthToken(result.data.token, false, result.data.expiresAt);
+  const role = decodeRoleFromToken(result.data.token);
+  return { success: true, redirectTo: role ? `/${role}/dashboard` : ROUTES.LOGIN };
+}
+
+/* Solicita o envio do link de redefinição de senha por e-mail (POST /auth/forgot-password) */
+export async function forgotPasswordAction(email: string): Promise<{ success?: boolean; error?: string }> {
+  const result = await apiClient.post('/auth/forgot-password', { email }, { public: true });
+  return result.error ? { error: result.error } : { success: true };
 }
 
 /* Verifica se o link de redefinição (token) ainda é válido antes de exibir
@@ -64,22 +70,8 @@ export async function forgotPasswordAction(email: string): Promise<{ success?: b
 export async function validateResetTokenAction(
   token: string
 ): Promise<{ valid: boolean; error?: string }> {
-  try {
-    const response = await fetch(`${API_URL}/auth/reset-password/validate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      return { valid: false, error: errorData?.message || 'Link inválido ou expirado.' };
-    }
-
-    return { valid: true };
-  } catch {
-    return { valid: false, error: 'Erro de conexão com o servidor.' };
-  }
+  const result = await apiClient.post('/auth/reset-password/validate', { token }, { public: true });
+  return result.error ? { valid: false, error: result.error } : { valid: true };
 }
 
 /* Confirma o token de redefinição e define a nova senha (POST /auth/reset-password) */
@@ -87,20 +79,9 @@ export async function resetPasswordAction(
   token: string,
   newPassword: string
 ): Promise<{ success?: boolean; error?: string }> {
-  try {
-    const response = await fetch(`${API_URL}/auth/reset-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, newPassword }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      return { error: errorData?.message || 'Link inválido ou expirado.' };
-    }
-
-    return { success: true };
-  } catch {
-    return { error: 'Erro de conexão com o servidor.' };
+  const result = await apiClient.post('/auth/reset-password', { token, newPassword }, { public: true });
+  if (result.error) {
+    return { error: result.fieldErrors?.newPassword ?? result.error };
   }
+  return { success: true };
 }

@@ -9,6 +9,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { registerAction } from "@/actions/register";
 import { useRouter } from "next/navigation";
+import { validatePassword } from "@/lib/password";
 
 export function FormRegister() {
     const [role, setRole] = useState<RoleEnum.PATIENT | RoleEnum.PSYCHOLOGIST>(RoleEnum.PATIENT);
@@ -38,6 +39,10 @@ export function FormRegister() {
         if (fullName.length < 3) {
             frontendErrors.fullName = "Nome completo deve ter pelo menos 3 caracteres.";
         }
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            frontendErrors.password = passwordError;
+        }
         if (passwordMismatch) {
             frontendErrors.repeatPassword = "As senhas não coincidem.";
         }
@@ -53,17 +58,18 @@ export function FormRegister() {
 
         const result = await registerAction(formData);
 
-        const backendFields = result?.fields ?? {};
+        if (result.success && result.redirectTo) {
+            // Mantém o botão desabilitado até a navegação terminar (evita duplo envio).
+            toast.success(result.message ?? "Conta criada com sucesso!", { id: toastId });
+            router.push(result.redirectTo);
+            return;
+        }
 
+        const backendFields = result.fields ?? {};
         if (Object.keys(backendFields).length > 0) {
             setFieldErrors(backendFields);
-            toast.error(result?.error || "Corrija os campos destacados.", { id: toastId });
-        } else if (result?.error) {
-            toast.error(result.error, { id: toastId });
-        } else if (result?.success && result.redirectTo) {
-            toast.success("Usuário registrado com sucesso!", { id: toastId });
-            router.push(result.redirectTo);
         }
+        toast.error(result.error || "Não foi possível concluir o cadastro.", { id: toastId });
         setLoading(false);
     }
 
@@ -74,7 +80,7 @@ export function FormRegister() {
                 <p className="text-slate-500 text-lg">Junte-se a nós para cuidar da sua saúde mental.</p>
             </div>
 
-            <form onSubmit={handleRegister} className="flex flex-col gap-5 mt-2">
+            <form onSubmit={handleRegister} className="flex flex-col gap-5 mt-2" aria-busy={loading} noValidate>
                 <input type="hidden" name="userRole" value={role} />
                 {/* Segmented Control para o Tipo de Conta */}
                 <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full max-w-sm mx-auto shadow-inner">
@@ -114,6 +120,7 @@ export function FormRegister() {
                         fieldName="Email" 
                         name="email" 
                         inputType="email" 
+                        autoComplete="email"
                         error={fieldErrors["email"]}
                         onClearError={() => clearFieldError("email")}
                     />
@@ -143,6 +150,7 @@ export function FormRegister() {
                         fieldName="Senha" 
                         name="password" 
                         inputType="password" 
+                        autoComplete="new-password"
                         error={fieldErrors["password"]}
                         onClearError={() => clearFieldError("password")}
                     />
@@ -150,6 +158,7 @@ export function FormRegister() {
                         fieldName="Repita a senha" 
                         name="repeatPassword" 
                         inputType="password" 
+                        autoComplete="new-password"
                         error={fieldErrors["repeatPassword"]}
                         onClearError={() => clearFieldError("repeatPassword")}
                     />
