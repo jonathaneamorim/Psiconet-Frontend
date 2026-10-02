@@ -97,6 +97,9 @@ espelhados em `TICKET_LIMITS`; o backend impõe (3 abertos, intervalo, duplicida
 - Psicólogo: `/psychologist/medical-records` (pacientes + solicitações) e `/[linkId]` (anotações, registro documental,
   auditoria). Editor TipTap com barra enxuta, atalhos e **autosave do rascunho no servidor** (debounce 1,5 s); finalizar
   torna imutável (hash + nome/CRP); correções por adendo. Tipos: Registro documental × Anotação pessoal.
+  Barra do editor: título/subtítulo/texto, negrito/itálico/sublinhado, alinhamento (esquerda/centro/direita),
+  tamanho da fonte (lista fixa `FONT_SIZE_OPTIONS`), listas, desfazer/refazer. "Exportar PDF" no cabeçalho do
+  prontuário (`RecordPdfExport` → `/api/medical-records/links/[linkId]/pdf`), com opção "Incluir anotações pessoais".
 - Paciente: `/patient/medical-records` — solicita acesso, vê situação/justificativa; `/[requestId]` somente leitura e PDF.
 - Conteúdo é JSON do editor; renderize **sempre** com `RichTextViewer` (nunca `dangerouslySetInnerHTML`).
 - Nada clínico em `localStorage`/`sessionStorage`/URL; páginas clínicas não devem ser cacheadas.

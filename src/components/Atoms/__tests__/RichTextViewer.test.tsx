@@ -35,4 +35,26 @@ describe('RichTextViewer', () => {
     render(<RichTextViewer doc={null} />);
     expect(screen.getByText('—')).toBeInTheDocument();
   });
+
+  it('aplica alinhamento e tamanho de fonte da lista e ignora valores livres', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', attrs: { textAlign: 'center' }, content: [
+          { type: 'text', text: 'grande', marks: [{ type: 'textStyle', attrs: { fontSize: '24px' } }] },
+        ] },
+        { type: 'heading', attrs: { level: 2, textAlign: 'right' }, content: [{ type: 'text', text: 'Direita' }] },
+        { type: 'paragraph', attrs: { textAlign: 'justify;position:fixed' }, content: [
+          { type: 'text', text: 'livre', marks: [{ type: 'textStyle', attrs: { fontSize: '999px' } }] },
+        ] },
+      ],
+    } as unknown as RichTextDoc;
+    render(<RichTextViewer doc={doc} />);
+
+    expect(screen.getByText('grande')).toHaveStyle({ fontSize: '24px' });
+    expect(screen.getByText('grande').closest('p')).toHaveStyle({ textAlign: 'center' });
+    expect(screen.getByRole('heading', { name: 'Direita' })).toHaveStyle({ textAlign: 'right' });
+    expect(screen.getByText('livre').closest('p')).not.toHaveAttribute('style');
+    expect(screen.getByText('livre').tagName).toBe('P');
+  });
 });

@@ -6,6 +6,7 @@ import { getClinicalAuditAction, updateMedicalRecordAction } from '@/actions/med
 import { SessionNoteEditor, type AppointmentOption } from '@/components/Organism/SessionNoteEditor';
 import { SessionNoteCard } from '@/components/Organism/SessionNoteCard';
 import { AddendumModal } from '@/components/Molecules/AddendumModal';
+import { RecordPdfExport } from '@/components/Molecules/RecordPdfExport';
 import { formatDate, formatDateTime } from '@/lib/datetime';
 import {
   AUDIT_ACTION_LABEL,
@@ -95,6 +96,15 @@ export function MedicalRecordWorkspace({ record: initialRecord, notes: initialNo
           {record.openingDate && <span className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-600">Aberto em {formatDate(record.openingDate)}</span>}
           <span className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-600">🔒 Conteúdo cifrado · acessos auditados</span>
         </div>
+        {record.opened && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-1">
+            <RecordPdfExport linkId={record.treatmentLinkId} />
+            <p className="text-xs text-slate-500">
+              O PDF traz o registro documental e as anotações finalizadas (rascunhos não entram), com autor, CRP, data e hash.
+              Anotações pessoais só entram se marcadas e nunca fazem parte da cópia do paciente.
+            </p>
+          </div>
+        )}
       </header>
 
       <div role="tablist" aria-label="Seções do prontuário" className="flex gap-2 overflow-x-auto">

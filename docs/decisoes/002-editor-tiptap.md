@@ -14,6 +14,10 @@
 - Alternativas: Lexical (bom, mas JSON próprio e mais código para o mesmo resultado), Slate (API
   instável entre versões), Quill (orientado a HTML/Delta, pior para validação estrutural).
 
+- **Alinhamento e tamanho de fonte**: `@tiptap/extension-text-align` (esquerda/centro/direita em parágrafo e
+  título; atalhos Ctrl+Shift+L/E/R) e `TextStyle` + `FontSize` de `@tiptap/extension-text-style` com seletor
+  de opções fixas (`FONT_SIZE_OPTIONS`, espelho da whitelist do backend). O visualizador só aplica valores da lista.
+
 ## UX e acessibilidade
 - Barra de ferramentas `role="toolbar"` com `aria-pressed`, rótulos e atalhos (Ctrl+B/I/U, Ctrl+Alt+1/2/0,
   Ctrl+Shift+7/8, Ctrl+Z / Ctrl+Shift+Z); área editável com `role="textbox"` e `aria-label`.

@@ -3,7 +3,9 @@
 import { useEffect } from 'react';
 import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import type { RichTextDoc } from '@/types/medicalRecord';
+import TextAlign from '@tiptap/extension-text-align';
+import { TextStyle, FontSize } from '@tiptap/extension-text-style';
+import { FONT_SIZE_OPTIONS, type RichTextDoc, type TextAlign as Align } from '@/types/medicalRecord';
 
 interface Props {
   value: RichTextDoc;
@@ -17,7 +19,8 @@ interface Props {
 
 /*
  * Somente os nós/marcas aceitos pela whitelist do backend (RichTextSanitizer): título (H1),
- * subtítulo (H2), parágrafo, negrito, itálico, sublinhado, listas, desfazer/refazer.
+ * subtítulo (H2), parágrafo, negrito, itálico, sublinhado, listas, desfazer/refazer, alinhamento
+ * (esquerda/centro/direita) e tamanho de fonte (lista fixa FONT_SIZES).
  * Conteúdo colado fora disso é normalizado pelo próprio schema (extensões desativadas não existem).
  */
 const extensions = [
@@ -30,6 +33,15 @@ const extensions = [
     horizontalRule: false,
     link: false,
   }),
+  TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right'] }),
+  TextStyle,
+  FontSize,
+];
+
+const ALIGN_BUTTONS: { value: Align; label: string; shortcut: string; path: string }[] = [
+  { value: 'left', label: 'Alinhar à esquerda', shortcut: 'Ctrl+Shift+L', path: 'M4 6h16M4 10h10M4 14h16M4 18h10' },
+  { value: 'center', label: 'Centralizar', shortcut: 'Ctrl+Shift+E', path: 'M4 6h16M7 10h10M4 14h16M7 18h10' },
+  { value: 'right', label: 'Alinhar à direita', shortcut: 'Ctrl+Shift+R', path: 'M4 6h16M10 10h10M4 14h16M10 18h10' },
 ];
 
 interface ToolButtonProps {
@@ -74,6 +86,8 @@ function Toolbar({ editor }: { editor: Editor }) {
       ordered: e.isActive('orderedList'),
       canUndo: e.can().undo(),
       canRedo: e.can().redo(),
+      align: (['center', 'right'] as const).find((a) => e.isActive({ textAlign: a })) ?? 'left',
+      fontSize: (e.getAttributes('textStyle').fontSize as string | undefined) ?? '',
     }),
   });
 
@@ -101,6 +115,32 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolButton label="Sublinhado" shortcut="Ctrl+U" active={state.underline} onClick={() => chain().toggleUnderline().run()}>
         <span className="underline">S</span>
       </ToolButton>
+      {divider}
+ {ALIGN_BUTTONS.map((a) => (
+        <ToolButton key={a.value} label={a.label} shortcut={a.shortcut} active={state.align === a.value}
+          onClick={() => chain().setTextAlign(a.value).run()}>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeWidth={2} d={a.path} />
+          </svg>
+        </ToolButton>
+      ))}
+      {divider}
+      <label className="inline-flex items-center">
+        <span className="sr-only">Tamanho da fonte</span>
+        <select
+          value={state.fontSize}
+          onMouseDown={(e) => e.stopPropagation()}
+          onChange={(e) => {
+            const size = e.target.value;
+            if (size) chain().setFontSize(size).run();
+            else chain().unsetFontSize().run();
+          }}
+          title="Tamanho da fonte"
+          className="h-9 px-2 text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+        >
+          {FONT_SIZE_OPTIONS.map((o) => <option key={o.value || 'normal'} value={o.value}>{o.label}</option>)}
+        </select>
+      </label>
       {divider}
       <ToolButton label="Lista com marcadores" shortcut="Ctrl+Shift+8" active={state.bullet} onClick={() => chain().toggleBulletList().run()}>
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeWidth={2} d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" /></svg>

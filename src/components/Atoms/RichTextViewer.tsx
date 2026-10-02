@@ -1,5 +1,5 @@
-import { Fragment, type ReactNode } from 'react';
-import type { RichTextDoc, RichTextNode } from '@/types/medicalRecord';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
+import { FONT_SIZES, type RichTextDoc, type RichTextNode } from '@/types/medicalRecord';
 
 /*
  * Renderiza o JSON do editor como elementos React (texto sempre escapado pelo React).
@@ -11,8 +11,18 @@ function renderText(node: RichTextNode, key: number): ReactNode {
     if (mark.type === 'bold') el = <strong>{el}</strong>;
     else if (mark.type === 'italic') el = <em>{el}</em>;
     else if (mark.type === 'underline') el = <u>{el}</u>;
+    else if (mark.type === 'textStyle') {
+      // Só valores da lista fixa viram estilo (o backend já garante; aqui é defesa extra)
+      const size = mark.attrs?.fontSize;
+      if (size && (FONT_SIZES as readonly string[]).includes(size)) el = <span style={{ fontSize: size }}>{el}</span>;
+    }
   }
   return <Fragment key={key}>{el}</Fragment>;
+}
+
+function alignStyle(node: RichTextNode): CSSProperties | undefined {
+  const align = node.attrs?.textAlign;
+  return align === 'center' || align === 'right' ? { textAlign: align } : undefined;
 }
 
 function renderNode(node: RichTextNode, key: number): ReactNode {
@@ -23,9 +33,11 @@ function renderNode(node: RichTextNode, key: number): ReactNode {
     case 'hardBreak':
       return <br key={key} />;
     case 'paragraph':
-      return <p key={key}>{children}</p>;
+      return <p key={key} style={alignStyle(node)}>{children}</p>;
     case 'heading':
-      return node.attrs?.level === 2 ? <h4 key={key}>{children}</h4> : <h3 key={key}>{children}</h3>;
+      return node.attrs?.level === 2
+        ? <h4 key={key} style={alignStyle(node)}>{children}</h4>
+        : <h3 key={key} style={alignStyle(node)}>{children}</h3>;
     case 'bulletList':
       return <ul key={key}>{children}</ul>;
     case 'orderedList':

@@ -1,11 +1,26 @@
 /** Documento do editor (JSON ProseMirror/TipTap) — validado por whitelist no backend. */
 export interface RichTextMark {
-  type: 'bold' | 'italic' | 'underline';
+  type: 'bold' | 'italic' | 'underline' | 'textStyle';
+  /** Só em textStyle: tamanho da lista FONT_SIZES */
+  attrs?: { fontSize?: string | null };
 }
+
+export type TextAlign = 'left' | 'center' | 'right';
+
+/** Espelha RichTextSanitizer.FONT_SIZES do backend (16px = padrão, sem marca). */
+export const FONT_SIZES = ['12px', '14px', '18px', '20px', '24px'] as const;
+export const FONT_SIZE_OPTIONS: { value: string; label: string }[] = [
+  { value: '12px', label: 'Muito pequeno' },
+  { value: '14px', label: 'Pequeno' },
+  { value: '', label: 'Normal' },
+  { value: '18px', label: 'Médio' },
+  { value: '20px', label: 'Grande' },
+  { value: '24px', label: 'Muito grande' },
+];
 
 export interface RichTextNode {
   type: 'doc' | 'paragraph' | 'heading' | 'text' | 'bulletList' | 'orderedList' | 'listItem' | 'hardBreak';
-  attrs?: { level?: 1 | 2; start?: number };
+  attrs?: { level?: 1 | 2; start?: number; textAlign?: TextAlign | null };
   content?: RichTextNode[];
   text?: string;
   marks?: RichTextMark[];
