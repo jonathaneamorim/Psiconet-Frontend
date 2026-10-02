@@ -2,6 +2,8 @@ import { PatientProfileSettingsForm } from '@/components/Organism/PatientProfile
 import { NotificationPreferencesForm } from '@/components/Organism/NotificationPreferencesForm';
 import { getMyPatientProfileAction } from '@/actions/profile';
 import { getNotificationPreferencesAction } from '@/actions/notifications';
+import { getConsentHistoryAction } from '@/actions/legal';
+import { PrivacyConsentsSection } from '@/components/Organism/PrivacyConsentsSection';
 
 export const metadata = {
   title: 'Configurações | Psiconet',
@@ -11,9 +13,10 @@ export const metadata = {
 const DEFAULT_PREFERENCES = { appointmentEnabled: true, connectionEnabled: true, paymentEnabled: true };
 
 export default async function PatientSettingsPage() {
-  const [profileResult, preferencesResult] = await Promise.all([
+  const [profileResult, preferencesResult, consentsResult] = await Promise.all([
     getMyPatientProfileAction(),
     getNotificationPreferencesAction(),
+    getConsentHistoryAction(),
   ]);
 
   const profile = profileResult.data;
@@ -37,6 +40,8 @@ export default async function PatientSettingsPage() {
         )}
 
         <NotificationPreferencesForm initial={preferencesResult.data ?? DEFAULT_PREFERENCES} />
+
+        <PrivacyConsentsSection history={consentsResult.data ?? null} />
       </div>
     </div>
   );

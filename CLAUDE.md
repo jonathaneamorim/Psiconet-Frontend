@@ -18,12 +18,12 @@ react-hot-toast · nextjs-toploader · **Recharts 3** (dashboard admin) · **Tip
 npm ci              # instala dependências
 npm run dev         # http://localhost:3000 (backend em NEXT_PUBLIC_API_URL, padrão :8080)
 npm run build       # build de produção (inclui checagem de tipos)
-npm test            # Jest + Testing Library (52+ testes)
+npm test            # Jest + Testing Library (90+ testes)
 npm run lint        # ESLint 9 + eslint-config-next (ESLint 10 ainda não é suportado pelos plugins)
 npx tsc --noEmit    # checagem de tipos isolada
 ```
-Variáveis (`.env.example`): `NEXT_PUBLIC_API_URL` (embutida no build), `ACCESS_TIME` (min, fallback do cookie),
-`KEEP_LOGGED_TIME` (dias, fallback), `COOKIE_TOKEN_NAME`, `ROLE_PREFIX`.
+Variáveis (`.env.example`): `NEXT_PUBLIC_API_URL` (embutida no build; também entra na CSP), `COOKIE_TOKEN_NAME`,
+`ROLE_PREFIX`. **Não há durações de sessão no front**: os cookies seguem as expirações devolvidas pela API (ADR 014 do backend).
 Lint: existem ~18 erros **pré-existentes** (principalmente `react-hooks/set-state-in-effect` em hooks antigos);
 código novo deve sair sem erros.
 
@@ -36,37 +36,48 @@ app/
   (pages)/change-password/   troca de senha (obrigatória p/ senha temporária: ?obrigatoria=1)
   (pages)/support/           Meus chamados: lista, /new, /[id] (paciente e psicólogo)
   (pages)/notifications/     central de notificações (todas as roles)
+  (pages)/terms|privacy|cookies/  documentos legais públicos (logado e deslogado), renderizados do Markdown da API
+  (pages)/accept-terms/      reaceite obrigatório de Termos/Privacidade (qualquer role autenticada)
   (pages)/admin/             layout com guarda de role; dashboard (Recharts + loading.tsx), users, tickets, tickets/[id]
   (pages)/psychologist/      ... + medical-records (lista + ?aba=solicitacoes), medical-records/[linkId]
   (pages)/patient/           ... + medical-records (solicitar), medical-records/[requestId] (somente leitura)
   api/payments/[id]/receipt, api/medical-records/[requestId]/pdf   proxies de arquivos (injetam o Bearer)
 components/     Atomic Design
-  Atoms/        badges (UserStatus/Role, TicketBadges), RichTextViewer (JSON → React, sem HTML)
-  Molecules/    ModalShell (dialog acessível), EditUser/CreateAdmin/NotifyUser/Addendum modais, RichTextEditor, Pagination
+  Atoms/        badges (UserStatus/Role, TicketBadges), RichTextViewer (JSON → React, sem HTML), LegalMarkdown,
+                ConsentGate, CookiePreferencesButton, PrintButton, UserAvatar
+  Molecules/    ModalShell (dialog acessível), EditUser/CreateAdmin/NotifyUser/Addendum modais, RichTextEditor, Pagination,
+                LegalConsentFields (checkboxes de aceite do cadastro e do reaceite)
   Organism/     Header (menu do usuário com Suporte acima de Sair), UsersTable, AdminDashboardCharts, TicketList,
                 TicketConversation, NewTicketForm, MedicalRecordWorkspace, SessionNoteEditor, SessionNoteCard,
-                AccessRequestsPanel, PatientRecordLinks, ...
-  templates/    FormLogin, FormRegister, FormResetPassword, FormChangePassword
+                AccessRequestsPanel, PatientRecordLinks, Footer (global), CookieBanner (+ modal de preferências),
+                LegalDocumentView, PrivacyConsentsSection (configurações), ...
+  templates/    FormLogin, FormRegister, FormResetPassword, FormChangePassword, AcceptTermsForm
+contexts/       ConnectionContext, CookieConsentContext (useCookieConsent)
 config/         routes.ts (ROUTES), navigation.tsx (NAV_ITEMS por role)
 lib/            jwt (decodifica + expiração; só para navegação), password (espelho da política), notificationRoutes,
-                datetime, cpf, calendar, currency, recurrence
-services/       api/apiClient.ts, cookieService.ts
+                datetime, cpf, calendar, currency, recurrence, sessionCookies + sessionRefresh (sessão, ADR 014),
+                cookieConsent (categorias e cookie de consentimento), markdown (parser seguro), age
+services/       api/apiClient.ts, cookieService.ts, legalService.ts (documentos/versões públicos, cache 5 min)
 types/          admin, auth, ticket, medicalRecord, notification, appointment, payment, connection, profile, recurrence
 proxy.ts        guarda de rotas por role (Next 16 "proxy", antigo middleware)
 ```
 
 ## Contrato com o backend
-- Toda chamada sai do **servidor** (Server Actions → `apiClient`). Token JWT em cookie httpOnly; o cookie expira junto
-  com o token (`expiresAt` do login). "Manter login" pede token longo ao backend (`rememberMe`).
+- Toda chamada sai do **servidor** (Server Actions → `apiClient`). **Sessão (ADR 014 do backend):** token de acesso de
+  15 min em `psiconet_token` + refresh rotativo em `psiconet_refresh`, ambos httpOnly. Sem "Manter conectado neste
+  dispositivo" são cookies de sessão do navegador; com a opção, persistentes com as expirações da API
+  (`lib/sessionCookies.ts`). O **`proxy.ts` renova de forma transparente** (acesso ausente/vencendo em < 60 s + refresh
+  presente → `POST /auth/refresh`, grava os cookies na resposta e repassa o token novo à própria requisição).
 - `apiClient` retorna `{ data, error, status, code, fieldErrors, retryAfter }`:
   - corpo de sucesso vazio ou não-JSON não quebra (o texto puro do backend gerava o bug "conta já existe");
   - `fieldErrors` = `ErrorResponse.errors` → exibir no campo; `error` → toast;
   - **429** (`code: RATE_LIMITED`) → mensagem amigável com o tempo de espera (o backend envia `Retry-After`);
-  - **401** em rota autenticada → limpa o cookie (sessão invalidada no backend);
-  - **403 `PASSWORD_CHANGE_REQUIRED`** → redireciona para `/change-password?obrigatoria=1`
-    (exceto chamadas com `skipPasswordRedirect`, como o polling do sino);
-  - repassa o IP do navegador em `X-Forwarded-For` (o rate limit por IP do backend depende disso).
-- Logout chama `POST /auth/logout` (invalida todos os tokens do usuário) antes de apagar o cookie.
+  - **401** em rota autenticada → `/login?sessao=expirada` (o proxy apaga os cookies e o login mostra o aviso);
+  - **403 `PASSWORD_CHANGE_REQUIRED`** → `/change-password?obrigatoria=1`; **403 `CONSENT_REQUIRED`** → `/accept-terms`;
+  - nenhum desses redirecionamentos acontece em chamadas `background: true` (polling do sino, navbar no layout);
+  - repassa o IP do navegador em `X-Forwarded-For` e o navegador em `X-Client-User-Agent` (rate limit, prova de aceite).
+- "Sair" chama `POST /auth/logout` (encerra só este dispositivo); "Sair de todos os dispositivos" (Configurações) chama
+  `POST /auth/logout-all`.
 - **O backend é a autoridade** de permissão, validação e limites; o front só reflete (esconde botões, redireciona).
 
 ## Roles e rotas
@@ -75,8 +86,24 @@ proxy.ts        guarda de rotas por role (Next 16 "proxy", antigo middleware)
 | Administrador | `/admin/*` | mesma tela de login; guarda no `proxy.ts` **e** em `admin/layout.tsx` |
 | Psicólogo | `/psychologist/*` | + `/support`, `/notifications`, `/change-password` |
 | Paciente | `/patient/*` | + `/support`, `/notifications`, `/change-password` |
-`proxy.ts`: token expirado/ inválido → apaga cookie e vai para `/login`; `/support` só paciente/psicólogo (admin vai
-para `/admin/tickets`); perfis públicos cruzados (`/patient/profile/[id]`, `/psychologist/profile/[id]`) liberados.
+`proxy.ts`: sessão perdida → apaga os cookies e vai para `/login?sessao=expirada`; `/terms`, `/privacy`, `/cookies`
+abrem para todos (logado ou não, sem redirecionar ao dashboard); `/accept-terms` e `/api/*` para qualquer role logada;
+`/support` só paciente/psicólogo (admin vai para `/admin/tickets`); perfis públicos cruzados liberados.
+
+## Legal e Privacidade (ADRs 011–015 do backend)
+- **Fonte única** dos documentos: `docs/legal/*.md` do backend, servidos em `GET /legal/documents/{slug}` e renderizados
+  por `LegalMarkdown` (sem HTML bruto). Versões em `GET /legal/versions` — nunca fixe versão no front.
+- **Cookies:** só estritamente necessários (`psiconet_token`, `psiconet_refresh`, `psiconet_consent`). Banner com
+  Rejeitar/Personalizar/Aceitar de **mesmo destaque**; escolha gravada por Server Action (`actions/cookieConsent.ts`)
+  com a versão da política; versão nova ⇒ banner reaparece. Reabrir pelo rodapé ou nas Configurações.
+- **Qualquer script, pixel, fonte ou embed de terceiro** só entra com: categoria disponível em `lib/cookieConsent.ts`,
+  `<ConsentGate>`/`useCookieConsent().hasConsent`, nova versão da Política de Cookies e origem liberada na CSP
+  (`next.config.ts`). Hoje não há nenhum — mantenha assim sem decisão registrada.
+- **Cadastro:** checkbox obrigatório de Termos + Privacidade (links em nova aba) e, para paciente, consentimento destacado
+  de dados de saúde; versões enviadas em campos ocultos; 18+ validado (backend é a autoridade).
+- **Reaceite:** `/accept-terms` (o login já manda para lá se `consentRequired`). **Configurações → Privacidade e
+  consentimentos**: histórico de aceites, cookies, direitos do titular (chamado `PRIVACY`) e sair de todos os dispositivos.
+- Cabeçalhos de segurança (CSP, Referrer-Policy, X-Frame-Options, Permissions-Policy, HSTS em produção) em `next.config.ts`.
 
 ## Área administrativa
 - **Usuários** (`/admin/users`): busca/filtros/ordenação na query string, aplicados **no servidor**; colunas nome,
@@ -149,6 +176,8 @@ Sistema social onde Pacientes e Psicólogos se conectam:
 
 ## Nunca faça
 - Chamar a API direto do navegador com o token ou guardar token/dado clínico em `localStorage`/`sessionStorage`.
+- Carregar script/cookie não essencial ou recurso de terceiro sem consentimento e sem atualizar a Política de Cookies.
+- Criar duração de sessão no front (as durações são do backend) ou pré-marcar checkbox de aceite.
 - Versionar `.env*` (exceto `.env.example`).
 - Exibir CPF completo, conteúdo clínico fora das telas do psicólogo titular/paciente liberado, ou renderizar HTML vindo de usuário.
 - Inventar valores de enum (status, notificação, role) que não existam no backend; confiar em `decodeRoleFromToken` para

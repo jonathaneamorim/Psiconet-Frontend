@@ -5,6 +5,7 @@ export type NotificationReferenceType =
   | 'TICKET'
   | 'ANNOUNCEMENT'
   | 'MEDICAL_RECORD'
+  | 'LEGAL'
   | string;
 
 export type NotificationType =
@@ -22,7 +23,8 @@ export type NotificationType =
   | 'ADMIN_ANNOUNCEMENT'
   | 'MEDICAL_RECORD_ACCESS_REQUESTED'
   | 'MEDICAL_RECORD_ACCESS_GRANTED'
-  | 'MEDICAL_RECORD_ACCESS_DENIED';
+  | 'MEDICAL_RECORD_ACCESS_DENIED'
+  | 'LEGAL_DOCUMENTS_UPDATED';
 
 export interface NotificationDTO {
   id: string;

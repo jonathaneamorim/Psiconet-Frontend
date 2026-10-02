@@ -9,13 +9,13 @@ import { TICKET_CATEGORY_LABEL, TICKET_LIMITS, type TicketCategory } from '@/typ
 const inputClass =
   'w-full px-4 py-3 text-sm border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500';
 
-export function NewTicketForm() {
+export function NewTicketForm({ initialCategory = '' }: { initialCategory?: TicketCategory | '' }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<TicketCategory | ''>('');
+  const [category, setCategory] = useState<TicketCategory | ''>(initialCategory);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

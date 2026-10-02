@@ -23,6 +23,10 @@ const base = {
   cpf: '529.982.247-25',
   birthDate: '1995-01-01',
   password: 'Senha@Forte1',
+  acceptTerms: 'on',
+  acceptHealthData: 'on',
+  termsVersion: '1.0.0',
+  privacyVersion: '1.0.0',
 };
 
 describe('registerAction', () => {
@@ -66,5 +70,27 @@ describe('registerAction', () => {
     post.mockResolvedValue({ data: { message: 'ok', nextStep: 'LOGIN' } });
     await registerAction(form({ ...base, userRole: 'admin' }));
     expect(post.mock.calls[0][0]).toBe('/auth/register/patient');
+  });
+
+  it('envia o aceite e as versões vistas; paciente inclui dados de saúde, psicólogo não', async () => {
+    post.mockResolvedValue({ data: { message: 'ok', nextStep: 'LOGIN' } });
+
+    await registerAction(form(base));
+    expect(post.mock.calls[0][1]).toEqual(expect.objectContaining({
+      acceptTerms: true, acceptHealthData: true, termsVersion: '1.0.0', privacyVersion: '1.0.0',
+    }));
+
+    await registerAction(form({ ...base, userRole: 'psychologist', crp: '06/1' }));
+    expect(post.mock.calls[1][1]).not.toHaveProperty('acceptHealthData');
+    expect(post.mock.calls[1][1]).toEqual(expect.objectContaining({ acceptTerms: true }));
+  });
+
+  it('checkbox desmarcado vai como false (o backend recusa)', async () => {
+    post.mockResolvedValue({ error: 'Para criar a conta...', status: 400, fieldErrors: { acceptTerms: 'x' } });
+    const withoutAccept: Record<string, string> = { ...base };
+    delete withoutAccept.acceptTerms;
+    const result = await registerAction(form(withoutAccept));
+    expect(post.mock.calls[0][1].acceptTerms).toBe(false);
+    expect(result.fields).toEqual({ acceptTerms: 'x' });
   });
 });

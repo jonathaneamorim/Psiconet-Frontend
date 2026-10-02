@@ -1,7 +1,7 @@
 /** Espelha os enums de suporte do backend (model/enums/support) */
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-export type TicketCategory = 'ACCOUNT' | 'REGISTRATION' | 'APPOINTMENT' | 'PAYMENT' | 'TECHNICAL' | 'OTHER';
+export type TicketCategory = 'ACCOUNT' | 'REGISTRATION' | 'APPOINTMENT' | 'PAYMENT' | 'TECHNICAL' | 'PRIVACY' | 'OTHER';
 
 export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
   OPEN: 'Aberto',
@@ -23,6 +23,7 @@ export const TICKET_CATEGORY_LABEL: Record<TicketCategory, string> = {
   APPOINTMENT: 'Agendamentos',
   PAYMENT: 'Cobranças e pagamentos',
   TECHNICAL: 'Problema técnico',
+  PRIVACY: 'Privacidade / LGPD (meus dados)',
   OTHER: 'Outro assunto',
 };
 

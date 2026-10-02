@@ -17,6 +17,9 @@ export function resolveNotificationRoute(
     return referenceId ? `/support/${referenceId}` : '/support';
   }
 
+  // Nova versão de Termos/Privacidade: tela de aceite (se já aceitou, ela redireciona ao dashboard)
+  if (referenceType === 'LEGAL') return '/accept-terms';
+
   if (referenceType === 'MEDICAL_RECORD') {
     if (role === RoleEnum.PSYCHOLOGIST) return '/psychologist/medical-records?aba=solicitacoes';
     if (role === RoleEnum.PATIENT) return '/patient/medical-records';

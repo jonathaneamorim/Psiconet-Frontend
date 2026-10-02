@@ -26,6 +26,13 @@ export async function registerAction(formData: FormData): Promise<ActionResult> 
     cpf: normalizeCpf(formData.get('cpf')?.toString() ?? ''),
     birthDate: formData.get('birthDate')?.toString().trim() || null,
     password: formData.get('password')?.toString(),
+    // Aceite (ADR 013 do backend): versões que o usuário viu; data, IP e navegador ficam com o servidor.
+    acceptTerms: formData.get('acceptTerms') === 'on',
+    termsVersion: formData.get('termsVersion')?.toString() ?? '',
+    privacyVersion: formData.get('privacyVersion')?.toString() ?? '',
+    ...(role === RoleEnum.PATIENT && {
+      acceptHealthData: formData.get('acceptHealthData') === 'on',
+    }),
     ...(role === RoleEnum.PSYCHOLOGIST && {
       crp: formData.get('crp')?.toString().trim(),
     }),
