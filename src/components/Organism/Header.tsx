@@ -56,7 +56,7 @@ export function Header({ userRole, user = null }: HeaderProps) {
     const profileHref = isAdmin ? ROUTES.ADMIN_DASHBOARD : `/${userRole}/profile`;
 
     return (
-        <header className="w-full h-18 bg-white/80 backdrop-blur-md fixed top-0 left-0 px-4 sm:px-8 z-50 border-b border-slate-200/60 shadow-sm transition-all">
+        <header className="print:hidden w-full h-18 bg-white/80 backdrop-blur-md fixed top-0 left-0 px-4 sm:px-8 z-50 border-b border-slate-200/60 shadow-sm transition-all">
             <div className="container w-full h-full mx-auto flex items-center justify-between">
 
                 {/* Logo */}

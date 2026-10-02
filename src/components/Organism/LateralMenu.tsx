@@ -22,7 +22,7 @@ export function LateralMenu({ userRole }: LateralMenuProps) {
 
     return (
         <aside
-            className="hidden lg:flex fixed top-18 left-0 h-[calc(100vh-4.5rem)] w-16 hover:w-96 bg-white/80 backdrop-blur-md border-r border-slate-200/60 transition-all duration-300 z-40 group overflow-hidden shadow-sm flex-col"
+            className="print:hidden hidden lg:flex fixed top-18 left-0 h-[calc(100vh-4.5rem)] w-16 hover:w-96 bg-white/80 backdrop-blur-md border-r border-slate-200/60 transition-all duration-300 z-40 group overflow-hidden shadow-sm flex-col"
             data-testid="lateral-menu"
         >
             <nav className="flex-1 py-6 px-2 flex flex-col gap-2">
