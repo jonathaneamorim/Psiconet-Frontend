@@ -5,6 +5,7 @@ import { ToasterProvider } from "@/components/Atoms/ToasterProvider";
 import { Header } from "@/components/Organism/Header";
 import { LateralMenu } from "@/components/Organism/LateralMenu";
 import { getUserRole } from "@/lib/auth";
+import { getHeaderUserAction } from "@/actions/profile";
 import { ConnectionProvider } from "@/contexts/ConnectionContext";
 import NextTopLoader from "nextjs-toploader";
 
@@ -22,6 +23,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const role = await getUserRole();
+  const headerUser = role ? await getHeaderUserAction() : null;
   return (
     <html lang="pt-br">
       <body className={raleway.variable}>
@@ -33,7 +35,7 @@ export default async function RootLayout({
         />
         
         <ConnectionProvider>
-          <Header userRole={role} />
+          <Header userRole={role} user={headerUser} />
           <LateralMenu userRole={role} />
           <main className={role ? "lg:pl-16" : ""}>
             {children}

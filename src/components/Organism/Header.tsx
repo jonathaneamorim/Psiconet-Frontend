@@ -8,13 +8,17 @@ import { logoutAction } from "@/actions/logout";
 import { NAV_ITEMS } from "@/config/navigation";
 import { ROUTES } from "@/config/routes";
 import { NotificationsDropdown } from "./NotificationsDropdown";
+import { UserAvatar } from "../Atoms/UserAvatar";
+import type { HeaderUser } from "@/actions/profile";
 import toast from "react-hot-toast";
 
 interface HeaderProps {
     userRole: RoleEnum | null;
+    /** Nome e foto do usuário logado (null para admin ou se o perfil não carregar). */
+    user?: HeaderUser | null;
 }
 
-export function Header({ userRole }: HeaderProps) {
+export function Header({ userRole, user = null }: HeaderProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
@@ -41,6 +45,7 @@ export function Header({ userRole }: HeaderProps) {
     const isAdmin = userRole === RoleEnum.ADMIN;
 
     const roleLabel = isPatient ? 'Paciente' : isPsychologist ? 'Psicólogo' : 'Administrador';
+    const accountName = user?.fullName?.trim() || 'Minha Conta';
     const roleAccessLabel = isPatient ? 'Acesso Paciente' : isPsychologist ? 'Acesso Psicólogo' : 'Acesso Administrador';
 
     const navItems = userRole ? (NAV_ITEMS[userRole] ?? []) : [];
@@ -105,13 +110,9 @@ export function Header({ userRole }: HeaderProps) {
                                 aria-haspopup="menu"
                                 aria-expanded={isProfileOpen}
                             >
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-50 flex items-center justify-center text-[var(--primary)] ring-2 ring-white shadow-sm">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </div>
+                                <UserAvatar photoUrl={user?.photoUrl} name={user?.fullName} className="w-9 h-9 ring-2 ring-white shadow-sm" />
                                 <div className="flex flex-col items-start hidden sm:flex">
-                                    <span className="text-sm font-semibold text-slate-700 leading-tight">Minha Conta</span>
+                                    <span className="text-sm font-semibold text-slate-700 leading-tight max-w-[10rem] truncate">{accountName}</span>
                                     <span className="text-xs text-slate-500 font-medium">{roleLabel}</span>
                                 </div>
                                 <svg className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,13 +219,9 @@ export function Header({ userRole }: HeaderProps) {
                             <div className="flex flex-col gap-6">
                                 {/* Mobile User Info */}
                                 <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-50 flex items-center justify-center text-[var(--primary)] shadow-inner">
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-800">Minha Conta</p>
+                                    <UserAvatar photoUrl={user?.photoUrl} name={user?.fullName} className="w-12 h-12 shadow-inner" iconClassName="w-6 h-6" />
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-slate-800 truncate">{accountName}</p>
                                         <p className="text-xs text-slate-500">{roleLabel}</p>
                                     </div>
                                 </div>

@@ -31,6 +31,30 @@ export async function getMeProfileAction(): Promise<{ data?: UserProfile; error?
   return apiClient.get<UserProfile>(path);
 }
 
+export interface HeaderUser {
+  fullName: string | null;
+  photoUrl: string | null;
+}
+
+/*
+ * Nome e foto do usuário logado para o menu da navbar (layout raiz). Admin não tem perfil/foto.
+ * Nunca redireciona para a troca de senha: o layout também envolve a própria página de troca,
+ * e um redirect aqui viraria loop. Qualquer falha cai no ícone padrão.
+ */
+export async function getHeaderUserAction(): Promise<HeaderUser | null> {
+  const role = await getUserRole();
+  if (role !== RoleEnum.PATIENT && role !== RoleEnum.PSYCHOLOGIST) return null;
+
+  const path = role === RoleEnum.PATIENT ? '/patients/me' : '/psychologists/me';
+  try {
+    const result = await apiClient.get<UserProfile>(path, { skipPasswordRedirect: true });
+    if (!result.data) return null;
+    return { fullName: result.data.fullName ?? null, photoUrl: result.data.photoUrl ?? null };
+  } catch {
+    return null;
+  }
+}
+
 /* GET /psychologists/search?name={name} */
 export async function searchPsychologistsAction(
   name: string,
@@ -75,6 +99,7 @@ export async function updatePsychologistProfileAction(
   if (result.error) return { error: result.error };
 
   revalidatePath('/psychologist/settings');
+  revalidatePath('/', 'layout'); // nome da navbar
   return { success: true };
 }
 
@@ -89,6 +114,7 @@ export async function updatePsychologistPhotoAction(
   if (result.error) return { error: result.error };
 
   revalidatePath('/psychologist/settings');
+  revalidatePath('/', 'layout'); // foto da navbar
   return { data: result.data };
 }
 
@@ -105,6 +131,7 @@ export async function updatePatientProfileAction(
   if (result.error) return { error: result.error };
 
   revalidatePath('/patient/settings');
+  revalidatePath('/', 'layout'); // nome da navbar
   return { success: true };
 }
 
@@ -119,5 +146,6 @@ export async function updatePatientPhotoAction(
   if (result.error) return { error: result.error };
 
   revalidatePath('/patient/settings');
+  revalidatePath('/', 'layout'); // foto da navbar
   return { data: result.data };
 }

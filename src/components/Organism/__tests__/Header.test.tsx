@@ -27,4 +27,23 @@ describe('Header — menu do usuário', () => {
     render(<Header userRole={RoleEnum.ADMIN} />);
     expect(screen.queryByRole('link', { name: /Suporte/ })).toBeNull();
   });
+
+  it('mostra a foto e o nome do usuário no menu desktop e no mobile', () => {
+    render(
+      <Header
+        userRole={RoleEnum.PATIENT}
+        user={{ fullName: 'Ana Souza', photoUrl: 'https://cdn.example.com/ana.jpg' }}
+      />
+    );
+    const photos = screen.getAllByAltText('Foto de Ana Souza');
+    expect(photos).toHaveLength(2);
+    photos.forEach((img) => expect(img).toHaveAttribute('src', 'https://cdn.example.com/ana.jpg'));
+    expect(screen.getAllByText('Ana Souza')).toHaveLength(2);
+  });
+
+  it('sem foto mantém o ícone padrão e o rótulo "Minha Conta"', () => {
+    render(<Header userRole={RoleEnum.PSYCHOLOGIST} user={{ fullName: null, photoUrl: null }} />);
+    expect(screen.queryByRole('img', { name: /Foto/ })).toBeNull();
+    expect(screen.getAllByText('Minha Conta')).toHaveLength(2);
+  });
 });
