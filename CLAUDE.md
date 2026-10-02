@@ -1,6 +1,37 @@
-# Psiconet — Contexto para IAs (Frontend + Backend)
+# Psiconet Frontend — Guia para agentes e desenvolvedores
 
-> Este arquivo descreve a arquitetura, convenções e contexto completo do projeto Psiconet para que IAs (Claude, Gemini, GPT, etc.) possam entender o sistema rapidamente sem precisar explorar o código do zero.
+> Fonte oficial de verdade do frontend. Projeto irmão: **Psiconet-Backend** (Spring Boot) —
+> ver `../Psiconet-Backend/CLAUDE.md` (contrato de API, regras de negócio, ADRs em `docs/decisoes/`).
+
+## Comandos
+
+```bash
+npm ci              # instala dependências
+npm run dev         # http://localhost:3000 (backend esperado em NEXT_PUBLIC_API_URL, padrão :8080)
+npm run build       # build de produção (inclui checagem de tipos)
+npm test            # Jest + Testing Library
+npm run lint        # ESLint 9 + eslint-config-next (ESLint 10 ainda não é suportado pelos plugins)
+npx tsc --noEmit    # checagem de tipos isolada
+```
+
+Variáveis (`.env.example`): `NEXT_PUBLIC_API_URL`, `ACCESS_TIME` (min), `KEEP_LOGGED_TIME` (dias),
+`COOKIE_TOKEN_NAME`, `ROLE_PREFIX`.
+
+## Contrato com o backend
+
+- Toda chamada à API sai do **servidor** (Server Actions em `src/actions` → `apiClient`). O token JWT
+  fica em cookie httpOnly e nunca é exposto ao JavaScript do navegador.
+- Erros seguem `ErrorResponse` do backend: `{ status, message, timestamp, errors? }`. O `apiClient`
+  devolve `{ error, status, fieldErrors }` — exiba `error` em toast e `fieldErrors` nos campos.
+- **O backend é a autoridade** de permissão, validação e limites; o frontend apenas reflete
+  (esconde botões, redireciona). Nunca envie `role`/`userId` esperando que o backend confie neles.
+
+## Nunca faça
+
+- Chamar a API direto do navegador com o token, ou guardar token em `localStorage`.
+- Versionar `.env*` (exceto `.env.example`).
+- Exibir CPF completo ou conteúdo clínico fora das telas do psicólogo titular.
+- Criar valores de enum (status, notificação, role) que não existam no backend.
 
 ---
 
