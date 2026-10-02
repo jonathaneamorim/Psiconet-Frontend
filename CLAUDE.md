@@ -1,216 +1,111 @@
 # Psiconet Frontend — Guia para agentes e desenvolvedores
 
 > Fonte oficial de verdade do frontend. Projeto irmão: **Psiconet-Backend** (Spring Boot) —
-> ver `../Psiconet-Backend/CLAUDE.md` (contrato de API, regras de negócio, ADRs em `docs/decisoes/`).
+> `../Psiconet-Backend/CLAUDE.md` (contrato de API, regras de negócio, ADRs 000–010 em `docs/decisoes/`).
+> ADRs do frontend: `docs/decisoes/` (001 gráficos/Recharts, 002 editor/TipTap).
+
+## Produto
+Plataforma que conecta **pacientes** e **psicólogos** (busca, conexões, agenda, cobranças, notificações,
+prontuário com anotações de sessão, suporte) e uma **área administrativa** (usuários, administradores,
+dashboard, chamados, comunicados). Este projeto é o cliente web; o backend é a autoridade de tudo.
+
+## Stack
+Next.js 16 (App Router, Turbopack) · React 19.2 · TypeScript 5 · Tailwind 4 · Jest 30 + Testing Library ·
+react-hot-toast · nextjs-toploader · **Recharts 3** (dashboard admin) · **TipTap 3** (editor de anotações) · lucide-react.
 
 ## Comandos
-
 ```bash
 npm ci              # instala dependências
-npm run dev         # http://localhost:3000 (backend esperado em NEXT_PUBLIC_API_URL, padrão :8080)
+npm run dev         # http://localhost:3000 (backend em NEXT_PUBLIC_API_URL, padrão :8080)
 npm run build       # build de produção (inclui checagem de tipos)
-npm test            # Jest + Testing Library
+npm test            # Jest + Testing Library (52+ testes)
 npm run lint        # ESLint 9 + eslint-config-next (ESLint 10 ainda não é suportado pelos plugins)
 npx tsc --noEmit    # checagem de tipos isolada
 ```
+Variáveis (`.env.example`): `NEXT_PUBLIC_API_URL` (embutida no build), `ACCESS_TIME` (min, fallback do cookie),
+`KEEP_LOGGED_TIME` (dias, fallback), `COOKIE_TOKEN_NAME`, `ROLE_PREFIX`.
+Lint: existem ~18 erros **pré-existentes** (principalmente `react-hooks/set-state-in-effect` em hooks antigos);
+código novo deve sair sem erros.
 
-Variáveis (`.env.example`): `NEXT_PUBLIC_API_URL`, `ACCESS_TIME` (min), `KEEP_LOGGED_TIME` (dias),
-`COOKIE_TOKEN_NAME`, `ROLE_PREFIX`.
+## Estrutura (`src/`)
+```
+actions/        Server Actions (todas via apiClient): auth, register, logout, admin, tickets, medicalRecords,
+                notifications, appointments, connections, payments, profile, recurrenceRules, treatmentLinks
+app/
+  (pages)/(auth)/        login (banner pós-cadastro + e-mail pré-preenchido), register, reset-password
+  (pages)/change-password/   troca de senha (obrigatória p/ senha temporária: ?obrigatoria=1)
+  (pages)/support/           Meus chamados: lista, /new, /[id] (paciente e psicólogo)
+  (pages)/notifications/     central de notificações (todas as roles)
+  (pages)/admin/             layout com guarda de role; dashboard (Recharts + loading.tsx), users, tickets, tickets/[id]
+  (pages)/psychologist/      ... + medical-records (lista + ?aba=solicitacoes), medical-records/[linkId]
+  (pages)/patient/           ... + medical-records (solicitar), medical-records/[requestId] (somente leitura)
+  api/payments/[id]/receipt, api/medical-records/[requestId]/pdf   proxies de arquivos (injetam o Bearer)
+components/     Atomic Design
+  Atoms/        badges (UserStatus/Role, TicketBadges), RichTextViewer (JSON → React, sem HTML)
+  Molecules/    ModalShell (dialog acessível), EditUser/CreateAdmin/NotifyUser/Addendum modais, RichTextEditor, Pagination
+  Organism/     Header (menu do usuário com Suporte acima de Sair), UsersTable, AdminDashboardCharts, TicketList,
+                TicketConversation, NewTicketForm, MedicalRecordWorkspace, SessionNoteEditor, SessionNoteCard,
+                AccessRequestsPanel, PatientRecordLinks, ...
+  templates/    FormLogin, FormRegister, FormResetPassword, FormChangePassword
+config/         routes.ts (ROUTES), navigation.tsx (NAV_ITEMS por role)
+lib/            jwt (decodifica + expiração; só para navegação), password (espelho da política), notificationRoutes,
+                datetime, cpf, calendar, currency, recurrence
+services/       api/apiClient.ts, cookieService.ts
+types/          admin, auth, ticket, medicalRecord, notification, appointment, payment, connection, profile, recurrence
+proxy.ts        guarda de rotas por role (Next 16 "proxy", antigo middleware)
+```
 
 ## Contrato com o backend
+- Toda chamada sai do **servidor** (Server Actions → `apiClient`). Token JWT em cookie httpOnly; o cookie expira junto
+  com o token (`expiresAt` do login). "Manter login" pede token longo ao backend (`rememberMe`).
+- `apiClient` retorna `{ data, error, status, code, fieldErrors, retryAfter }`:
+  - corpo de sucesso vazio ou não-JSON não quebra (o texto puro do backend gerava o bug "conta já existe");
+  - `fieldErrors` = `ErrorResponse.errors` → exibir no campo; `error` → toast;
+  - **429** (`code: RATE_LIMITED`) → mensagem amigável com o tempo de espera (o backend envia `Retry-After`);
+  - **401** em rota autenticada → limpa o cookie (sessão invalidada no backend);
+  - **403 `PASSWORD_CHANGE_REQUIRED`** → redireciona para `/change-password?obrigatoria=1`
+    (exceto chamadas com `skipPasswordRedirect`, como o polling do sino);
+  - repassa o IP do navegador em `X-Forwarded-For` (o rate limit por IP do backend depende disso).
+- Logout chama `POST /auth/logout` (invalida todos os tokens do usuário) antes de apagar o cookie.
+- **O backend é a autoridade** de permissão, validação e limites; o front só reflete (esconde botões, redireciona).
 
-- Toda chamada à API sai do **servidor** (Server Actions em `src/actions` → `apiClient`). O token JWT
-  fica em cookie httpOnly e nunca é exposto ao JavaScript do navegador.
-- Erros seguem `ErrorResponse` do backend: `{ status, message, timestamp, errors? }`. O `apiClient`
-  devolve `{ error, status, fieldErrors }` — exiba `error` em toast e `fieldErrors` nos campos.
-- **O backend é a autoridade** de permissão, validação e limites; o frontend apenas reflete
-  (esconde botões, redireciona). Nunca envie `role`/`userId` esperando que o backend confie neles.
+## Roles e rotas
+| Role | Base | Observações |
+|---|---|---|
+| Administrador | `/admin/*` | mesma tela de login; guarda no `proxy.ts` **e** em `admin/layout.tsx` |
+| Psicólogo | `/psychologist/*` | + `/support`, `/notifications`, `/change-password` |
+| Paciente | `/patient/*` | + `/support`, `/notifications`, `/change-password` |
+`proxy.ts`: token expirado/ inválido → apaga cookie e vai para `/login`; `/support` só paciente/psicólogo (admin vai
+para `/admin/tickets`); perfis públicos cruzados (`/patient/profile/[id]`, `/psychologist/profile/[id]`) liberados.
 
-## Nunca faça
+## Área administrativa
+- **Usuários** (`/admin/users`): busca/filtros/ordenação na query string, aplicados **no servidor**; colunas nome,
+  perfil, criado em, situação, CPF (já mascarado pelo backend); ações editar (nome/telefone/e-mail — papel nunca muda),
+  notificar (comunicado = notificação + e-mail), ativar/inativar (admin base sem botão). "Novo administrador" cria
+  conta nova com senha temporária (troca obrigatória; senha não vai por e-mail).
+- **Dashboard** (`/admin/dashboard`): KPIs + 3 gráficos Recharts (ativos por perfil, totais, chamados abertos ×
+  resolvidos) com valores escritos, tabela equivalente e estados de carregamento/vazio/erro (ADR 001 do front).
+- **Chamados** (`/admin/tickets`): filtros por situação/prioridade/categoria/busca; detalhe com resposta, situação e
+  prioridade. Resposta/finalização notifica o usuário (backend).
 
-- Chamar a API direto do navegador com o token, ou guardar token em `localStorage`.
-- Versionar `.env*` (exceto `.env.example`).
-- Exibir CPF completo ou conteúdo clínico fora das telas do psicólogo titular.
-- Criar valores de enum (status, notificação, role) que não existam no backend.
+## Suporte (chamados)
+Menu do usuário (foto no `Header`): **"Suporte · Meus chamados" acima de "Sair da Conta"** (desktop e mobile), só para
+paciente/psicólogo. Telas: `/support` (lista + filtro), `/support/new`, `/support/[id]` (conversa, encerrar). Limites
+espelhados em `TICKET_LIMITS`; o backend impõe (3 abertos, intervalo, duplicidade, tamanho).
 
----
+## Prontuário e anotações (ADRs 008–010 do backend, 002 do front)
+- Psicólogo: `/psychologist/medical-records` (pacientes + solicitações) e `/[linkId]` (anotações, registro documental,
+  auditoria). Editor TipTap com barra enxuta, atalhos e **autosave do rascunho no servidor** (debounce 1,5 s); finalizar
+  torna imutável (hash + nome/CRP); correções por adendo. Tipos: Registro documental × Anotação pessoal.
+- Paciente: `/patient/medical-records` — solicita acesso, vê situação/justificativa; `/[requestId]` somente leitura e PDF.
+- Conteúdo é JSON do editor; renderize **sempre** com `RichTextViewer` (nunca `dangerouslySetInnerHTML`).
+- Nada clínico em `localStorage`/`sessionStorage`/URL; páginas clínicas não devem ser cacheadas.
 
-## O que é o Psiconet
-
-Psiconet é uma plataforma web de saúde mental que conecta **pacientes** a **psicólogos**. Possui um painel administrativo para gestão da plataforma. O **frontend** é um cliente web em **Next.js 16 (App Router)** que consome uma **API REST** construída em **Java/Spring Boot 3.3.5**.
-
----
-
-## Stack Técnica
-
-### Frontend
-
-| Camada       | Tecnologia                                         |
-| ------------ | -------------------------------------------------- |
-| Framework    | Next.js 16 com App Router                          |
-| Linguagem    | TypeScript                                         |
-| Estilo       | CSS + Tailwind utility classes (globals.css)       |
-| Fonte        | Raleway (Google Fonts)                             |
-| Auth         | JWT armazenado em cookie httpOnly                  |
-| API Client   | Fetch API nativa via `apiClient` centralizado      |
-| Testes       | Jest + Testing Library                             |
-| Toast        | react-hot-toast                                    |
-| Progress Bar | nextjs-toploader                                   |
-
-### Backend
-
-| Camada         | Tecnologia                            |
-| -------------- | ------------------------------------- |
-| Linguagem      | Java 17                               |
-| Framework      | Spring Boot 3.3.5                     |
-| Segurança      | Spring Security + JWT (Stateless)     |
-| Banco de dados | PostgreSQL                            |
-| Persistência   | Spring Data JPA                       |
-| Mapeamento     | MapStruct + Lombok                    |
-| Documentação   | SpringDoc OpenAPI (Swagger)           |
-| Validação      | Hibernate Validator (Bean Validation) |
-
----
-
-## Estrutura de Diretórios (Frontend `src/`)
-
-Para detalhes mais profundos, consulte a pasta `/docs` na raiz do projeto.
-
-```
-src/
-├── actions/            # Server Actions do Next.js (Mutações e Buscas via apiClient)
-│   ├── admin.ts
-│   ├── appointments.ts # CRUD de agendamentos (criar, aceitar, cancelar)
-│   ├── auth.ts
-│   ├── connections.ts
-│   ├── logout.ts
-│   ├── notifications.ts     # Listagem, contagem e marcação de leitura
-│   ├── payments.ts          # Listagem, upload de comprovante, aprovar/rejeitar/contestar
-│   ├── profile.ts           # Perfis + updateBillingSettingsAction (chave Pix / timing)
-│   ├── recurrenceRules.ts   # CRUD de regras de recorrência de um vínculo
-│   ├── register.ts
-│   └── treatmentLinks.ts    # updateTreatmentLinkPriceAction (preço padrão por paciente)
-│
-├── app/                # Next.js App Router
-│   ├── layout.tsx      # Root layout: Header + LateralMenu globais
-│   ├── page.tsx        # Home pública (PresentationSection + CarouselSection)
-│   ├── globals.css     # CSS global e variáveis de tema
-│   └── (pages)/
-│       ├── (auth)/     # Grupo sem URL — páginas de autenticação (login, register)
-│       ├── about/
-│       ├── notifications/      # Central de notificações (compartilhada entre roles autenticadas)
-│       ├── patient/            # Área privada do paciente
-│       │   ├── dashboard/
-│       │   ├── search/
-│       │   ├── connections/    # Gestão de conexões do paciente
-│       │   ├── appointments/   # Agenda de consultas (calendário + lista)
-│       │   ├── payments/       # Cobranças: acompanhar e enviar comprovantes
-│       │   ├── profile/[id]/   # Visualizar perfil de um psicólogo
-│       │   └── profile/        # Visualizar próprio perfil
-│       ├── psychologist/       # Área privada do psicólogo
-│       │   ├── dashboard/
-│       │   ├── search/
-│       │   ├── connections/    # Gestão de conexões do psicólogo
-│       │   ├── appointments/   # Agenda de consultas (calendário + agendamento + recorrência)
-│       │   ├── payments/       # Cobranças: revisar, aprovar ou rejeitar comprovantes
-│       │   ├── settings/       # Configurações de cobrança (chave Pix, timing)
-│       │   ├── profile/[id]/   # Visualizar perfil de um paciente
-│       │   └── profile/        # Visualizar próprio perfil
-│       └── admin/              # Área privada do administrador
-│           ├── dashboard/
-│           └── users/          # Listagem paginada de usuários
-│
-├── components/         # Atomic Design (Atoms, Molecules, Organism, templates)
-│   ├── Atoms/          # AppointmentStatusBadge, MeetingTypeBadge, PaymentStatusBadge, etc.
-│   ├── Molecules/      # Create/Cancel/DetailsAppointmentModal, Upload/Reject/DisputePaymentModal,
-│   │                   # EditTreatmentPriceModal, etc.
-│   └── Organism/       # PsychologistAgendaView, PatientAgendaView, PaymentsView,
-│                       # BillingSettingsForm, NotificationsDropdown, ConnectionList, etc.
-├── config/             # Constantes de rotas e navegação centralizada
-├── constants/          # Constantes globais (Cookies, API_URL, timeouts)
-├── contexts/           # Contextos React (ex: ConnectionContext)
-├── data/               # Arquivos mock (ex: mock.json)
-├── enums/              # Enums TypeScript mapeados do Backend (ex: RoleEnum)
-├── hooks/              # Custom hooks client-side
-│   ├── useActiveConnections.ts # Lista de conexões + updatePrice (preço padrão do vínculo)
-│   ├── useAppointments.ts      # Estado da agenda (CRUD, recorrência, cancelamento com escopo)
-│   ├── useConnectionActions.ts
-│   ├── useMyPayments.ts        # Estado das cobranças (filtro por status, ações de revisão)
-│   └── useNotifications.ts     # Contagem não lida (polling) + lista de notificações
-├── lib/                # Utilidades puras (auth cookies, cpf mask, jwt decode puro, calendar)
-├── services/           # Serviços externos e abstrações
-│   ├── api/apiClient.ts# Cliente HTTP centralizado para Server Actions (inclui `postForm` p/ multipart)
-│   └── cookieService.ts# Serviço de gerência de cookies HTTP-Only
-└── types/              # Tipos DTO e Interfaces estritas
-    ├── admin.ts, auth.ts, connection.ts, profile.ts
-    ├── appointment.ts   # AppointmentDTO/CreateDTO/CancelDTO (com price, recurrenceRuleId, cancelScope)
-    ├── notification.ts  # NotificationType espelhando o enum real do backend
-    ├── payment.ts        # PaymentDTO, PaymentStatus, PaymentTiming, BillingSettingsUpdateDTO
-    └── recurrence.ts     # RecurrenceRuleDTO/CreateDTO, RecurrenceFrequency, DayOfWeek
-```
-
-> Observação: `src/services/api/notificationApiClient.ts` é um cliente HTTP client-side (lê o token direto do cookie) que ficou sem uso após a migração para `actions/notifications.ts` — não segue o padrão Server Action/BFF do projeto e é candidato a remoção. Da mesma forma, `components/Organism/ConnectionRequestsDropdown.tsx` foi substituído por `NotificationsDropdown.tsx` no `Header` e não é mais referenciado.
-
----
-
-## Documentação Extra (`/docs`)
-
-O repositório possui uma pasta `docs/` com detalhamentos avançados:
-- **Arquitetura**: Estruturas de pastas e decisões de design.
-- **Autenticação**: Fluxo JWT, edge middleware e validação de role.
-- **Componentes**: Guias de Atomic Design e boas práticas UI.
-- **Conexões**: O sistema de vínculo paciente-psicólogo (Context API + Optimistic Updates).
-- **Convenções**: Nomenclatura, TypeScript e regras de uso de Client vs Server components.
-
----
-
-## Modelo de Dados (Backend)
-
-### Entidades Principais
-
-| Entidade         | Tabela               | Descrição                                                                                                                |
-| ---------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `User`           | `usuario`            | Base de autenticação e identidade                                                                                       |
-| `Patient`        | `paciente`           | Perfil de paciente (1:1 com User)                                                                                       |
-| `Psychologist`   | `psicologo`          | Perfil de psicólogo (1:1 com User)                                                                                      |
-| `Specialty`      | `especialidade`      | Áreas de atuação (N:M com Psychologist)                                                                                 |
-| `Connection`     | `conexao`            | Vínculo entre paciente e psicólogo (PENDING, ACCEPTED, etc.)                                                            |
-| `TreatmentLink`  | `paciente_piscologo` | Vínculo de tratamento ativo entre paciente e psicólogo; carrega o `defaultPrice` (preço padrão da sessão)               |
-| `RecurrenceRule` | `regra_recorrencia`  | Regra de recorrência (frequência, dia da semana, horários, `adjustForWeekend`) de um `TreatmentLink`, gera `Appointment`s |
-| `Appointment`    | `agendamento`        | Sessão entre paciente e psicólogo; pode referenciar a `RecurrenceRule` que a gerou e tem `price` próprio                |
-| `Payment`        | `pagamento`          | Cobrança de uma consulta (PENDING → AWAITING_REVIEW → APPROVED/REJECTED/DISPUTED/CANCELLED), com upload de comprovante  |
-| `Notification`   | —                    | Notificações in-app tipadas por `NotificationType` (agendamento, conexão, pagamento)                                    |
-
----
-
-## Sistema de Roles e Autenticação
-
-### 3 tipos de acesso
-
-| Role          | Enum (Frontend)         | URL Base          | Dashboard                 |
-| ------------- | ----------------------- | ----------------- | ------------------------- |
-| Administrador | `RoleEnum.ADMIN`        | `/admin/*`        | `/admin/dashboard`        |
-| Psicólogo     | `RoleEnum.PSYCHOLOGIST` | `/psychologist/*` | `/psychologist/dashboard` |
-| Paciente      | `RoleEnum.PATIENT`      | `/patient/*`      | `/patient/dashboard`      |
-
-### Fluxo de autenticação
-1. Usuário faz login (`actions/auth.ts`).
-2. Backend retorna um JWT.
-3. O token é salvo via `cookieService` (`psiconet_token`, httpOnly).
-4. O Next.js Middleware intercepta a navegação e utiliza a função nativa `decodeRoleFromToken` (`lib/jwt.ts`, sem biblitecas pesadas como jwt-decode) para descobrir a Role.
-5. Se não autenticado ou rota bloqueada, redireciona o usuário (`/login` ou dashboard correto).
-6. O token é ejetado nas requisições da Server Action de forma transparente pela biblioteca customizada `apiClient.ts`.
-
----
-
-## A Camada de API (`apiClient.ts`)
-Para não poluir as Server Actions, todo request HTTP é canalizado pelo `src/services/api/apiClient.ts`.
-- Injeta automaticamente os Headers necessários e o Token JWT.
-- Controla a política de Cache (`no-store` por padrão).
-- Lida centralizadamente com Parsing de Erros (`401`, `403`, `500`) fornecendo mensagens coerentes à UI (`ApiResult<T>`).
-- `apiClient.postForm<T>(path, formData)`: variante para `multipart/form-data` (não força `Content-Type: application/json`), usada no upload de comprovante de pagamento — sempre com `FormData` nativo, nunca base64.
-
----
+## Notificações
+- `NotificationType` espelha o enum do backend, incluindo `TICKET_REPLIED`, `TICKET_CLOSED`, `ADMIN_ANNOUNCEMENT`,
+  `MEDICAL_RECORD_ACCESS_REQUESTED|GRANTED|DENIED` (obrigatórias, exibidas como "Sempre ativa" nas preferências).
+- Destino do clique centralizado em `lib/notificationRoutes.ts` (`referenceType` + `referenceId` + role).
+- Polling do contador a cada 15 s; "marcar todas" usa `PATCH /notifications/read-all`.
 
 ## Sistema de Conexões
 
@@ -242,29 +137,19 @@ Sistema social onde Pacientes e Psicólogos se conectam:
 
 ---
 
-## Sistema de Notificações
+## Convenções
+- Server-first: `use client` só nas folhas interativas. Tipagem estrita (sem `any` em dados de negócio; tipos em `src/types`).
+- Formulários com `FormData`/estado local; erros por campo com `role="alert"` e `aria-invalid`; botões travados durante envio
+  e até a navegação terminar.
+- Modais via `ModalShell` (Esc fecha, `role="dialog"`, foco). Ações sempre visíveis (não só no hover). Textos em pt-BR.
+- Commits semânticos em português; testes para regras de UI críticas (menu, tabela admin, viewer, apiClient).
 
-- `NotificationType` no frontend (`src/types/notification.ts`) espelha exatamente o enum Java do backend (`APPOINTMENT_SCHEDULED`, `APPOINTMENT_ACCEPTED`, `APPOINTMENT_CANCELLED`, `CONNECTION_REQUESTED`, `CONNECTION_ACCEPTED`, `PAYMENT_PENDING`, `PAYMENT_RECEIPT_SUBMITTED`, `PAYMENT_APPROVED`, `PAYMENT_REJECTED`, `PAYMENT_DISPUTED`) — não inventar novos valores sem checar `NotificationType.java`.
-- `useNotifications` faz polling do contador de não lidas a cada 15s (`getUnreadCountAction`) e busca a lista completa sob demanda (ao abrir o dropdown ou a página `/notifications`).
-- O backend só expõe `PATCH /notifications/{id}/read` (sem rota de bulk-read). `markAllNotificationsAsReadAction` simula "marcar todas" disparando um `PATCH` por notificação não lida em paralelo (`Promise.allSettled`).
-- `NotificationsDropdown` (Header) e `NotificationsPageView` (`/notifications`) resolvem o destino do clique a partir de `referenceType` (`APPOINTMENT` | `CONNECTION` | `PAYMENT`) + role do usuário, navegando para a página correspondente (`/{role}/appointments`, `/{role}/connections` ou `/{role}/payments`).
-
----
-
-## Convenções do Projeto
-
-- **Frontend**: Server-First (App Router). `use client` apenas nas "folhas" da árvore React que precisam de interatividade.
-- **Tipagem Estrita**: Nenhuma entidade de negócio pode ter tipagem inferida com `any`. Todo dado transacional mapeia-se via `src/types`.
-- **Forms nativos**: A preferência é o uso nativo de `FormData` ao invés de bibliotecas pesadas, mantendo a performance alta.
-
----
-
-## O que ainda NÃO existe (planejado)
-
-- Configurações de Perfil detalhado (upload de foto real via S3/Blob)
-- Notificações em tempo real via push (hoje é polling a cada 15s, não WebSockets/SSE)
-- Pré-preenchimento das configurações de cobrança já salvas (depende de `GET /psychologists/me` expor `pixKey`/`paymentTiming`/`paymentAdvanceMinutes`)
-- Página de "Configurações" para o paciente (hoje só existe `/psychologist/settings`; o item no menu do paciente segue `comingSoon: true`)
+## Nunca faça
+- Chamar a API direto do navegador com o token ou guardar token/dado clínico em `localStorage`/`sessionStorage`.
+- Versionar `.env*` (exceto `.env.example`).
+- Exibir CPF completo, conteúdo clínico fora das telas do psicólogo titular/paciente liberado, ou renderizar HTML vindo de usuário.
+- Inventar valores de enum (status, notificação, role) que não existam no backend; confiar em `decodeRoleFromToken` para
+  segurança (é só navegação).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
