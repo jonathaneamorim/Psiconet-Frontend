@@ -78,7 +78,7 @@ nos toggles, mensagens de estado em `aria-live`, confirmação em `ModalShell` (
   em desenvolvimento com LiveKit local, `ws://localhost:7880 http://localhost:7880`.
 
 ## Roteiro de teste manual (dois navegadores/perfis)
-1. Psicólogo (perfil A) agenda consulta **Online → Sala Psiconet** para daqui a ~12 min (e uma recorrente).
+1. Psicólogo (perfil A) agenda consulta **Online → Sala Psiconet** para daqui a ~35 min (e uma recorrente).
 2. Paciente (perfil B, outro navegador): a agenda mostra "Disponível às HH:mm"; ao abrir a janela o botão
    habilita sozinho. Entrar ⇒ lobby ⇒ "Aguardando o psicólogo entrar…"; notificação quando ele entrar.
 3. Psicólogo entra; conferir vídeo/áudio nos dois sentidos, mudo, câmera, troca de dispositivo, tela cheia.
