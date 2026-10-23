@@ -19,14 +19,15 @@ import { ConnectionQuality, ConnectionState, DisconnectReason, MediaDeviceFailur
 import { Maximize, Mic, MicOff, Minimize, PhoneOff, Settings, Video, VideoOff } from 'lucide-react';
 import type { VideoJoinResponseDTO } from '@/types/video';
 import { endVideoCallAction } from '@/actions/video';
+import { formatAppointmentTime } from '@/lib/calendar';
 import { ModalShell } from '@/components/Molecules/ModalShell';
 import { MediaPermissionHelp } from '@/components/Molecules/MediaPermissionHelp';
 import { useMediaPermissions } from '@/hooks/useMediaPermissions';
 import type { MediaKind } from '@/lib/mediaPermission';
-import { ALONE_WARNING_MS, SYSTEM_BLOCKED_MESSAGE, aloneRemainingMs, formatCountdown, mediaErrorMessage } from '@/lib/videoCall';
+import { ALONE_WARNING_MS, HARD_STOP_WARNING_MS, SYSTEM_BLOCKED_MESSAGE, aloneRemainingMs, formatCountdown, mediaErrorMessage } from '@/lib/videoCall';
 import type { DeviceChoices } from './CallLobby';
 
-export type CallEndReason = 'left' | 'ended' | 'other-device' | 'alone' | 'failed';
+export type CallEndReason = 'left' | 'ended' | 'other-device' | 'alone' | 'time-limit' | 'failed';
 
 interface Props {
   credentials: VideoJoinResponseDTO;
@@ -122,7 +123,11 @@ export function CallRoom({ credentials, choices, isHost, otherName, recordHref, 
     if (reason === DisconnectReason.CLIENT_INITIATED) return onFinished('left');
     // Só o backend remove participantes: quando a pessoa ficou sozinha além do limite (ADR 016).
     if (reason === DisconnectReason.PARTICIPANT_REMOVED) return onFinished('alone');
-    if (reason === DisconnectReason.ROOM_DELETED) return onFinished('ended');
+    if (reason === DisconnectReason.ROOM_DELETED) {
+      // Sala apagada perto do limite de horário: foi o encerramento automático, não o psicólogo.
+      const pastLimit = Date.now() >= new Date(credentials.hardStopAt).getTime() - 60_000;
+      return onFinished(pastLimit ? 'time-limit' : 'ended');
+    }
     if (reason === DisconnectReason.DUPLICATE_IDENTITY) return onFinished('other-device');
 
     // Queda de rede/servidor: tenta entrar de novo com credencial nova.
@@ -130,7 +135,7 @@ export function CallRoom({ credentials, choices, isHost, otherName, recordHref, 
     await new Promise((resolve) => setTimeout(resolve, REJOIN_DELAY_MS));
     const error = await onRejoin();
     if (error) onFinished('failed');
-  }, [onFinished, onRejoin]);
+  }, [credentials.hardStopAt, onFinished, onRejoin]);
 
   return (
     <LiveKitRoom
@@ -280,6 +285,25 @@ function RoomStage({
     };
   }, [isAlone, aloneTimeoutMs, onLeave, room]);
 
+  // Limite de horário: aviso nos últimos minutos e saída no horário (o backend encerra a sala logo depois).
+  const hardStopMs = useMemo(() => new Date(credentials.hardStopAt).getTime(), [credentials.hardStopAt]);
+  const [hardStopLeftMs, setHardStopLeftMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (Number.isNaN(hardStopMs)) return;
+    const tick = () => {
+      const remaining = Math.max(0, hardStopMs - Date.now());
+      setHardStopLeftMs(remaining);
+      if (remaining === 0) {
+        window.clearInterval(id);
+        onLeave('time-limit');
+        void room.disconnect();
+      }
+    };
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [hardStopMs, onLeave, room]);
+
   const reconnecting = rejoining
     || connectionState === ConnectionState.Reconnecting
     || connectionState === ConnectionState.SignalReconnecting;
@@ -358,6 +382,11 @@ function RoomStage({
           {reconnecting && (
             <span role="status" aria-live="assertive" className="px-4 py-2 rounded-full bg-amber-500 text-white text-xs font-semibold shadow">
               Conexão instável — reconectando…
+            </span>
+          )}
+          {hardStopLeftMs !== null && hardStopLeftMs <= HARD_STOP_WARNING_MS && (
+            <span role="status" aria-live="polite" className="px-4 py-2 rounded-2xl bg-slate-800/90 text-white text-xs font-semibold shadow text-center">
+              O horário da sessão terminou: a sala será encerrada às {formatAppointmentTime(credentials.hardStopAt)} (em {formatCountdown(hardStopLeftMs)}).
             </span>
           )}
           {aloneLeftMs !== null && aloneLeftMs <= ALONE_WARNING_MS && (

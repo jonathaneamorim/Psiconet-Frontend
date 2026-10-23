@@ -55,6 +55,9 @@ export function formatCountdown(ms: number): string {
   return `${seconds} s`;
 }
 
+/** Aviso antes do encerramento pelo limite de horário. */
+export const HARD_STOP_WARNING_MS = 5 * 60 * 1000;
+
 /** Aviso antes de desconectar quem está sozinho na sala. */
 export const ALONE_WARNING_MS = 2 * 60 * 1000;
 

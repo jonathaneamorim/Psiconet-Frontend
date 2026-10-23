@@ -20,4 +20,6 @@ export interface VideoJoinResponseDTO {
   joinClosesAt: string;
   /** Sozinho na sala por este tempo ⇒ desconectado (o backend também garante). */
   aloneTimeoutSeconds: number;
+  /** Limite de horário: a sala é encerrada para todos neste momento (horário do servidor). */
+  hardStopAt: string;
 }

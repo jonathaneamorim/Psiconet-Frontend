@@ -49,6 +49,11 @@ contagem regressiva e, ao fim, a página desconecta. O limite vem do backend (`a
 credencial) e o backend também remove pelo provedor quem passar dele (desconexão `PARTICIPANT_REMOVED` ⇒
 mesma tela). Quando todos saem, a sala fecha em segundos; entrar de novo (dentro da janela) a reabre.
 
+**Limite de horário:** a credencial traz `hardStopAt` (fim da consulta + 60 min por padrão). Nos 5 últimos
+minutos a sala avisa "a sala será encerrada às HH:mm"; no horário, a página sai e mostra "Horário da sessão
+encerrado" (sem "Entrar novamente": a janela de entrada já fechou). O backend encerra a sala 1 min depois,
+para todos, se ainda houver alguém.
+
 **Permissão de câmera/microfone** (`MediaPermissionHelp` + `useMediaPermissions` + `lib/mediaPermission.ts`),
 no lobby e na sala: ao ligar um dispositivo sem permissão, aparece "Permita o acesso à câmera/ao microfone".
 Nenhum navegador deixa o site abrir as configurações de permissão, então:

@@ -144,7 +144,8 @@ espelhados em `TICKET_LIMITS`; o backend impõe (3 abertos, intervalo, duplicida
 - **Página `/call/[appointmentId]`:** lobby → sala → fim (`components/Organism/VideoCall/`). SDK por `next/dynamic` (`CallLoader`).
   Credencial por `joinVideoCallAction` (Server Action) — token **só em memória**. Reconexão: SDK + até 3 reentradas automáticas.
 - **Sozinho na sala:** limite `aloneTimeoutSeconds` da credencial (15 min) — aviso nos 2 últimos minutos e
-  desconexão ("Você foi desconectado"); o backend também remove (`PARTICIPANT_REMOVED`). Permissão de câmera/
+  desconexão ("Você foi desconectado"); o backend também remove (`PARTICIPANT_REMOVED`). Limite de horário
+  `hardStopAt` (fim + 60 min): aviso nos 5 últimos minutos, saída no horário ("Horário da sessão encerrado"). Permissão de câmera/
   microfone negada ⇒ `MediaPermissionHelp` (pedido do navegador ou passos de desbloqueio).
 - **Cabeçalhos:** `camera`/`microphone` = `self` só em `/call/*`; origens do provedor só via `VIDEO_CSP_ORIGINS`.
 - **Desligar:** flag no backend (`VIDEO_ENABLED=false`) — a opção some sozinha; nada a mudar no front.

@@ -32,6 +32,10 @@ const FINISHED_TEXT: Record<CallEndReason, { title: string; body: string }> = {
     title: 'Você foi desconectado',
     body: 'Você ficou muito tempo sozinho na sala. Se a outra pessoa chegar, é possível entrar novamente enquanto a sala estiver aberta.',
   },
+  'time-limit': {
+    title: 'Horário da sessão encerrado',
+    body: 'A sala fecha automaticamente algum tempo depois do fim do horário agendado. Para continuar, agende uma nova sessão.',
+  },
   failed: { title: 'Conexão perdida', body: 'Não conseguimos reconectar à sala. Verifique sua internet e tente entrar novamente.' },
 };
 
@@ -103,7 +107,7 @@ export function CallExperience({ appointment, isHost, agendaHref, recordHref }: 
           <h2 className="text-lg font-bold text-slate-800">{FINISHED_TEXT[phase.reason].title}</h2>
           <p className="text-sm text-slate-500">{FINISHED_TEXT[phase.reason].body}</p>
           <div className="flex flex-wrap justify-center gap-2">
-            {phase.reason !== 'ended' && (
+            {phase.reason !== 'ended' && phase.reason !== 'time-limit' && (
               <button
                 type="button"
                 onClick={() => setPhase({ name: 'lobby' })}
