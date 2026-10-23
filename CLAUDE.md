@@ -13,6 +13,7 @@ dashboard, chamados, comunicados). Este projeto é o cliente web; o backend é a
 Next.js 16 (App Router, Turbopack) · React 19.2 · TypeScript 5 · Tailwind 4 · Jest 30 + Testing Library ·
 react-hot-toast · nextjs-toploader · **Recharts 3** (dashboard admin) · **TipTap 3** (editor de anotações) · lucide-react ·
 **livekit-client 2.22 + @livekit/components-react 2.9** (Sala Psiconet, carregados só em `/call`).
+**Node.js 24.22.1** (`.nvmrc`); `engines` aceita só as versões corrigidas de cada linha: `^22.23.4 || ^24.22.1 || >=26.12.1`.
 
 ## Comandos
 ```bash
