@@ -9,6 +9,15 @@ export type MediaKind = 'camera' | 'microphone';
 export type MediaPermissionState = PermissionState | 'unknown';
 export type BrowserFamily = 'chrome' | 'edge' | 'firefox' | 'safari' | 'other';
 
+/**
+ * Câmera e microfone só existem em contexto seguro (HTTPS ou localhost). Fora dele o navegador nem
+ * expõe `navigator.mediaDevices` e o SDK de vídeo falharia ao montar.
+ */
+export function canUseMediaDevices(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  return window.isSecureContext !== false && !!navigator.mediaDevices?.getUserMedia;
+}
+
 const PERMISSION_ERRORS = new Set(['NotAllowedError', 'PermissionDeniedError', 'SecurityError']);
 
 export function isPermissionError(error: unknown): boolean {

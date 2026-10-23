@@ -6,6 +6,7 @@ import type { AppointmentDTO } from '@/types/appointment';
 import type { VideoJoinResponseDTO } from '@/types/video';
 import { joinVideoCallAction } from '@/actions/video';
 import { videoJoinErrorMessage } from '@/lib/videoCall';
+import { canUseMediaDevices } from '@/lib/mediaPermission';
 import { CallLobby, type DeviceChoices } from './CallLobby';
 import { CallRoom, type CallEndReason } from './CallRoom';
 
@@ -45,6 +46,8 @@ const FINISHED_TEXT: Record<CallEndReason, { title: string; body: string }> = {
  * (estado do React); nunca vai para storage ou URL. Cada nova entrada pede uma credencial nova.
  */
 export function CallExperience({ appointment, isHost, agendaHref, recordHref }: CallExperienceProps) {
+  // Componente só do cliente (CallLoader com ssr:false): pode consultar o navegador direto.
+  const [mediaSupported] = useState(canUseMediaDevices);
   const [phase, setPhase] = useState<Phase>({ name: 'lobby' });
   const [lastChoices, setLastChoices] = useState<DeviceChoices | null>(null);
   const rejoinAttempts = useRef(0);
@@ -75,7 +78,20 @@ export function CallExperience({ appointment, isHost, agendaHref, recordHref }: 
     <section className="max-w-6xl mx-auto" aria-labelledby="call-title">
       <h1 id="call-title" className="sr-only">Sessão online com {otherName}</h1>
 
-      {phase.name === 'lobby' && (
+      {!mediaSupported && (
+        <div className="max-w-lg mx-auto bg-white rounded-3xl border border-slate-200 shadow-2xs p-8 text-center flex flex-col items-center gap-4" role="alert">
+          <h2 className="text-lg font-bold text-slate-800">A videochamada precisa de uma conexão segura</h2>
+          <p className="text-sm text-slate-500">
+            Este navegador só libera câmera e microfone em páginas com <strong>https://</strong>. Abra a Psiconet pelo
+            endereço seguro (com o cadeado na barra de endereço) e tente novamente. Se o problema continuar, atualize o navegador.
+          </p>
+          <Link href={agendaHref} className="px-4 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl">
+            Voltar para a agenda
+          </Link>
+        </div>
+      )}
+
+      {mediaSupported && phase.name === 'lobby' && (
         <CallLobby
           appointment={appointment}
           isHost={isHost}

@@ -1,4 +1,4 @@
-import { detectBrowser, isPermissionError, kindsLabel, permissionSteps, requestMediaAccess } from '../mediaPermission';
+import { canUseMediaDevices, detectBrowser, isPermissionError, kindsLabel, permissionSteps, requestMediaAccess } from '../mediaPermission';
 
 const named = (name: string) => Object.assign(new Error('x'), { name });
 
@@ -35,5 +35,24 @@ describe('mediaPermission', () => {
     getUserMedia.mockRejectedValueOnce(named('NotAllowedError'));
     const error = await requestMediaAccess(['microphone']);
     expect(error?.name).toBe('NotAllowedError');
+  });
+});
+
+describe('canUseMediaDevices', () => {
+  const original = window.isSecureContext;
+  afterEach(() => Object.defineProperty(window, 'isSecureContext', { value: original, configurable: true }));
+
+  it('só libera em contexto seguro com mediaDevices disponível', () => {
+    Object.defineProperty(navigator, 'mediaDevices', { value: { getUserMedia: jest.fn() }, configurable: true });
+    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+    expect(canUseMediaDevices()).toBe(true);
+
+    // HTTP pela rede local: o navegador não expõe câmera/microfone
+    Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true });
+    expect(canUseMediaDevices()).toBe(false);
+
+    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+    Object.defineProperty(navigator, 'mediaDevices', { value: undefined, configurable: true });
+    expect(canUseMediaDevices()).toBe(false);
   });
 });
