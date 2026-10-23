@@ -18,4 +18,6 @@ export interface VideoJoinResponseDTO {
   startDateTime: string;
   endDateTime: string;
   joinClosesAt: string;
+  /** Sozinho na sala por este tempo ⇒ desconectado (o backend também garante). */
+  aloneTimeoutSeconds: number;
 }

@@ -28,6 +28,10 @@ const FINISHED_TEXT: Record<CallEndReason, { title: string; body: string }> = {
   left: { title: 'Você saiu da sessão', body: 'Se saiu sem querer, é possível entrar novamente enquanto a sala estiver aberta.' },
   ended: { title: 'Sessão encerrada', body: 'O psicólogo encerrou a sessão. Obrigado por usar a Psiconet.' },
   'other-device': { title: 'Sessão aberta em outro lugar', body: 'Você entrou nesta sessão por outra aba ou dispositivo, então esta janela foi desconectada.' },
+  alone: {
+    title: 'Você foi desconectado',
+    body: 'Você ficou muito tempo sozinho na sala. Se a outra pessoa chegar, é possível entrar novamente enquanto a sala estiver aberta.',
+  },
   failed: { title: 'Conexão perdida', body: 'Não conseguimos reconectar à sala. Verifique sua internet e tente entrar novamente.' },
 };
 

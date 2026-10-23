@@ -40,7 +40,14 @@ o psicólogo, o vínculo (link do prontuário). Renderiza `CallLoader` → `Call
    mudo, câmera, dispositivos (microfone, câmera e alto-falante quando o navegador permite), tela cheia,
    indicador de qualidade (barras com rótulo acessível), faixa de reconexão, estados "Aguardando o psicólogo /
    paciente entrar…", "X saiu da sessão" e sair com confirmação (psicólogo também "Encerrar para todos").
-4. **Fim:** "Você saiu" (pode entrar de novo), "Sessão encerrada", "aberta em outro lugar" ou "Conexão perdida".
+4. **Fim:** "Você saiu" (pode entrar de novo), "Sessão encerrada", "aberta em outro lugar", "Você foi
+   desconectado" (sozinho além do limite) ou "Conexão perdida".
+
+**Sozinho na sala** (ADR 016 do backend): esperando a outra pessoa ou depois que ela saiu, a sala mostra
+"Se ninguém entrar em 15 minutos, você será desconectado automaticamente"; nos 2 últimos minutos aparece a
+contagem regressiva e, ao fim, a página desconecta. O limite vem do backend (`aloneTimeoutSeconds` na
+credencial) e o backend também remove pelo provedor quem passar dele (desconexão `PARTICIPANT_REMOVED` ⇒
+mesma tela). Quando todos saem, a sala fecha em segundos; entrar de novo (dentro da janela) a reabre.
 
 **Permissão de câmera/microfone** (`MediaPermissionHelp` + `useMediaPermissions` + `lib/mediaPermission.ts`),
 no lobby e na sala: ao ligar um dispositivo sem permissão, aparece "Permita o acesso à câmera/ao microfone".
@@ -79,6 +86,9 @@ nos toggles, mensagens de estado em `aria-live`, confirmação em `ModalShell` (
 6. **Saída e reentrada:** paciente sai ⇒ psicólogo vê "saiu da sessão"; paciente reentra.
 7. Abrir a mesma consulta em outra aba do paciente ⇒ a primeira mostra "aberta em outro lugar".
 8. Psicólogo "Encerrar para todos" ⇒ paciente vê "Sessão encerrada".
+8b. **Sozinho:** com `VIDEO_ALONE_TIMEOUT=3m` no backend, entrar sozinho ⇒ aviso com contagem no último
+    minuto… e desconexão com "Você foi desconectado"; "Entrar novamente" reabre a sala. Os dois saem ⇒ a sala
+    some do LiveKit em ~5 s (`docker logs psiconet_livekit`).
 9. Terceiro usuário abrindo `/call/{id}` ⇒ "Consulta não encontrada"; consulta cancelada ⇒ sem botão.
 10. **Celular** (Android Chrome e iOS Safari), retrato e paisagem: layout, miniatura, botões e áudio pelo alto-falante.
 11. Desligar `VIDEO_ENABLED` no backend ⇒ opção some do agendamento; link externo continua funcionando.

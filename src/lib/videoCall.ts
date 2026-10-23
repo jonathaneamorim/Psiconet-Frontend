@@ -55,6 +55,14 @@ export function formatCountdown(ms: number): string {
   return `${seconds} s`;
 }
 
+/** Aviso antes de desconectar quem está sozinho na sala. */
+export const ALONE_WARNING_MS = 2 * 60 * 1000;
+
+/** Tempo até desconectar quem está sozinho desde `aloneSince` (nunca negativo). */
+export function aloneRemainingMs(aloneSince: number, now: number, timeoutMs: number): number {
+  return Math.max(0, aloneSince + timeoutMs - now);
+}
+
 /** Mensagens das recusas de entrada (códigos estáveis do backend, ADR 016). */
 export function videoJoinErrorMessage(result: { status?: number; code?: string; error?: string; retryAfter?: number }): string {
   switch (result.code) {

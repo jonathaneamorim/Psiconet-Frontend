@@ -1,4 +1,4 @@
-import { formatCountdown, getJoinState, isInAppVideo, mediaErrorMessage, videoJoinErrorMessage } from '../videoCall';
+import { ALONE_WARNING_MS, aloneRemainingMs, formatCountdown, getJoinState, isInAppVideo, mediaErrorMessage, videoJoinErrorMessage } from '../videoCall';
 import { resolveNotificationRoute } from '../notificationRoutes';
 import { RoleEnum } from '@/enums/RoleEnum';
 import type { AppointmentDTO } from '@/types/appointment';
@@ -76,5 +76,16 @@ describe('notificações de vídeo', () => {
     expect(resolveNotificationRoute(n, RoleEnum.PATIENT)).toBe('/call/abc');
     expect(resolveNotificationRoute({ ...n, type: 'VIDEO_PARTICIPANT_JOINED' }, RoleEnum.PATIENT)).toBe('/call/abc');
     expect(resolveNotificationRoute({ ...n, type: 'APPOINTMENT_SCHEDULED' }, RoleEnum.PATIENT)).toBe('/patient/appointments');
+  });
+});
+
+describe('tempo sozinho na sala', () => {
+  const FIFTEEN_MIN = 15 * 60 * 1000;
+
+  it('conta a partir de quando a pessoa ficou sozinha e nunca fica negativo', () => {
+    expect(aloneRemainingMs(0, 0, FIFTEEN_MIN)).toBe(FIFTEEN_MIN);
+    expect(aloneRemainingMs(0, FIFTEEN_MIN - ALONE_WARNING_MS, FIFTEEN_MIN)).toBe(ALONE_WARNING_MS);
+    expect(aloneRemainingMs(0, FIFTEEN_MIN + 5000, FIFTEEN_MIN)).toBe(0);
+    expect(formatCountdown(ALONE_WARNING_MS)).toBe('2 min 00 s');
   });
 });

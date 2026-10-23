@@ -23,10 +23,10 @@ import { ModalShell } from '@/components/Molecules/ModalShell';
 import { MediaPermissionHelp } from '@/components/Molecules/MediaPermissionHelp';
 import { useMediaPermissions } from '@/hooks/useMediaPermissions';
 import type { MediaKind } from '@/lib/mediaPermission';
-import { SYSTEM_BLOCKED_MESSAGE, mediaErrorMessage } from '@/lib/videoCall';
+import { ALONE_WARNING_MS, SYSTEM_BLOCKED_MESSAGE, aloneRemainingMs, formatCountdown, mediaErrorMessage } from '@/lib/videoCall';
 import type { DeviceChoices } from './CallLobby';
 
-export type CallEndReason = 'left' | 'ended' | 'other-device' | 'failed';
+export type CallEndReason = 'left' | 'ended' | 'other-device' | 'alone' | 'failed';
 
 interface Props {
   credentials: VideoJoinResponseDTO;
@@ -78,7 +78,8 @@ const NO_ISSUE: DeviceIssue = { helpKinds: null, message: null };
  * compartilhamento de tela nesta versão (ADR 016).
  */
 export function CallRoom({ credentials, choices, isHost, otherName, recordHref, onRejoin, onConnected, onFinished }: Props) {
-  const intentionalLeave = useRef(false);
+  // Saída pedida pela própria página (botão "Sair" ou tempo sozinho esgotado).
+  const leaveReason = useRef<CallEndReason | null>(null);
   const [rejoining, setRejoining] = useState(false);
   const [deviceIssue, setDeviceIssue] = useState<DeviceIssue>(NO_ISSUE);
   const { permissions, markResult } = useMediaPermissions();
@@ -86,6 +87,11 @@ export function CallRoom({ credentials, choices, isHost, otherName, recordHref, 
   useEffect(() => {
     permissionsRef.current = permissions;
   }, [permissions]);
+
+  // Estável: o temporizador de "sozinho na sala" depende dela.
+  const handleLeave = useCallback((reason: CallEndReason) => {
+    leaveReason.current = reason;
+  }, []);
 
   // Falha ao ligar câmera/microfone (na entrada ou pelos botões da sala).
   const handleDeviceFailure = useCallback((failure?: MediaDeviceFailure, kind?: MediaDeviceKind) => {
@@ -112,7 +118,10 @@ export function CallRoom({ credentials, choices, isHost, otherName, recordHref, 
   }), [choices.audioDeviceId, choices.videoDeviceId]);
 
   const handleDisconnected = useCallback(async (reason?: DisconnectReason) => {
-    if (intentionalLeave.current || reason === DisconnectReason.CLIENT_INITIATED) return onFinished('left');
+    if (leaveReason.current) return onFinished(leaveReason.current);
+    if (reason === DisconnectReason.CLIENT_INITIATED) return onFinished('left');
+    // Só o backend remove participantes: quando a pessoa ficou sozinha além do limite (ADR 016).
+    if (reason === DisconnectReason.PARTICIPANT_REMOVED) return onFinished('alone');
     if (reason === DisconnectReason.ROOM_DELETED) return onFinished('ended');
     if (reason === DisconnectReason.DUPLICATE_IDENTITY) return onFinished('other-device');
 
@@ -146,9 +155,7 @@ export function CallRoom({ credentials, choices, isHost, otherName, recordHref, 
         markResult={markResult}
         deviceIssue={deviceIssue}
         setDeviceIssue={setDeviceIssue}
-        onLeave={() => {
-          intentionalLeave.current = true;
-        }}
+        onLeave={handleLeave}
       />
       <RoomAudioRenderer />
     </LiveKitRoom>
@@ -165,7 +172,7 @@ interface StageProps {
   markResult: ReturnType<typeof useMediaPermissions>['markResult'];
   deviceIssue: DeviceIssue;
   setDeviceIssue: (issue: DeviceIssue | ((prev: DeviceIssue) => DeviceIssue)) => void;
-  onLeave: () => void;
+  onLeave: (reason: CallEndReason) => void;
 }
 
 const QUALITY: Record<ConnectionQuality, { label: string; bars: number; color: string }> = {
@@ -240,13 +247,38 @@ function RoomStage({
   };
 
   const leave = async (endForAll: boolean) => {
-    onLeave();
+    onLeave('left');
     if (endForAll) {
       setEnding(true);
       await endVideoCallAction(credentials.appointmentId);
     }
     await room.disconnect();
   };
+
+  // Sozinho na sala (esperando ou depois que a outra pessoa saiu): desconecta ao fim do limite, com aviso antes.
+  const aloneTimeoutMs = credentials.aloneTimeoutSeconds * 1000;
+  const isAlone = !remote
+    && connectionState !== ConnectionState.Connecting
+    && connectionState !== ConnectionState.Disconnected;
+  const [aloneLeftMs, setAloneLeftMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isAlone || !(aloneTimeoutMs > 0)) return;
+    const since = Date.now();
+    const id = window.setInterval(() => {
+      const remaining = aloneRemainingMs(since, Date.now(), aloneTimeoutMs);
+      setAloneLeftMs(remaining);
+      if (remaining === 0) {
+        window.clearInterval(id);
+        onLeave('alone');
+        void room.disconnect();
+      }
+    }, 1000);
+    return () => {
+      window.clearInterval(id);
+      setAloneLeftMs(null);
+    };
+  }, [isAlone, aloneTimeoutMs, onLeave, room]);
 
   const reconnecting = rejoining
     || connectionState === ConnectionState.Reconnecting
@@ -316,13 +348,24 @@ function RoomStage({
           </div>
         )}
 
-        {reconnecting && (
-          <div className="absolute top-16 inset-x-0 flex justify-center z-20" role="status" aria-live="assertive">
-            <span className="px-4 py-2 rounded-full bg-amber-500 text-white text-xs font-semibold shadow">
+        {stageMessage && isAlone && aloneTimeoutMs > 0 && (
+          <p className="absolute inset-x-0 top-1/2 mt-8 px-6 text-center text-xs text-slate-400">
+            Se ninguém entrar em {Math.round(aloneTimeoutMs / 60000)} minutos, você será desconectado automaticamente.
+          </p>
+        )}
+
+        <div className="absolute top-16 inset-x-0 flex flex-col items-center gap-2 px-3 z-20">
+          {reconnecting && (
+            <span role="status" aria-live="assertive" className="px-4 py-2 rounded-full bg-amber-500 text-white text-xs font-semibold shadow">
               Conexão instável — reconectando…
             </span>
-          </div>
-        )}
+          )}
+          {aloneLeftMs !== null && aloneLeftMs <= ALONE_WARNING_MS && (
+            <span role="status" aria-live="polite" className="px-4 py-2 rounded-2xl bg-slate-800/90 text-white text-xs font-semibold shadow text-center">
+              Você está sozinho na sala e será desconectado em {formatCountdown(aloneLeftMs)}.
+            </span>
+          )}
+        </div>
 
         {/* Miniatura própria */}
         <div className="absolute bottom-24 right-3 z-10 w-24 aspect-[3/4] sm:w-44 sm:aspect-video landscape:w-36 landscape:aspect-video rounded-2xl overflow-hidden bg-slate-800 border border-white/20 shadow-lg">
