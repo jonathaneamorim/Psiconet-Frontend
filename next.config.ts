@@ -62,8 +62,16 @@ const callHeaders = [
   { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()" },
 ];
 
+// Só no `next dev`: hosts que podem abrir o servidor de desenvolvimento além de localhost (ex.: celular na
+// mesma rede pelo IP do computador). Sem isso o Next 16 recusa os scripts (403) e a página fica sem interação.
+// Padrão: redes locais privadas; DEV_ALLOWED_ORIGINS (separados por espaço ou vírgula) substitui a lista.
+const allowedDevOrigins = (process.env.DEV_ALLOWED_ORIGINS || "192.168.*.* 10.*.*.*")
+  .split(/[\s,]+/)
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  allowedDevOrigins,
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
