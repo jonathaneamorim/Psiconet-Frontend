@@ -2,7 +2,7 @@
 
 > Fonte oficial de verdade do frontend. Projeto irmão: **Psiconet-Backend** (Spring Boot) —
 > `../Psiconet-Backend/CLAUDE.md` (contrato de API, regras de negócio, ADRs 000–010 em `docs/decisoes/`).
-> ADRs do frontend: `docs/decisoes/` (001 gráficos/Recharts, 002 editor/TipTap).
+> ADRs do frontend: `docs/decisoes/` (001 gráficos/Recharts, 002 editor/TipTap, 003 videochamada/LiveKit).
 
 ## Produto
 Plataforma que conecta **pacientes** e **psicólogos** (busca, conexões, agenda, cobranças, notificações,
@@ -11,7 +11,8 @@ dashboard, chamados, comunicados). Este projeto é o cliente web; o backend é a
 
 ## Stack
 Next.js 16 (App Router, Turbopack) · React 19.2 · TypeScript 5 · Tailwind 4 · Jest 30 + Testing Library ·
-react-hot-toast · nextjs-toploader · **Recharts 3** (dashboard admin) · **TipTap 3** (editor de anotações) · lucide-react.
+react-hot-toast · nextjs-toploader · **Recharts 3** (dashboard admin) · **TipTap 3** (editor de anotações) · lucide-react ·
+**livekit-client 2.22 + @livekit/components-react 2.9** (Sala Psiconet, carregados só em `/call`).
 
 ## Comandos
 ```bash
@@ -23,7 +24,7 @@ npm run lint        # ESLint 9 + eslint-config-next (ESLint 10 ainda não é sup
 npx tsc --noEmit    # checagem de tipos isolada
 ```
 Variáveis (`.env.example`): `NEXT_PUBLIC_API_URL` (embutida no build; também entra na CSP), `COOKIE_TOKEN_NAME`,
-`ROLE_PREFIX`. **Não há durações de sessão no front**: os cookies seguem as expirações devolvidas pela API (ADR 014 do backend).
+`ROLE_PREFIX`, `VIDEO_CSP_ORIGINS` (origens do provedor de vídeo liberadas em `connect-src`; lida no build/start). **Não há durações de sessão no front**: os cookies seguem as expirações devolvidas pela API (ADR 014 do backend).
 Lint: existem ~18 erros **pré-existentes** (principalmente `react-hooks/set-state-in-effect` em hooks antigos);
 código novo deve sair sem erros.
 
@@ -36,6 +37,7 @@ app/
   (pages)/change-password/   troca de senha (obrigatória p/ senha temporária: ?obrigatoria=1)
   (pages)/support/           Meus chamados: lista, /new, /[id] (paciente e psicólogo)
   (pages)/notifications/     central de notificações (todas as roles)
+  (pages)/call/[appointmentId]/  Sala Psiconet (psicólogo e paciente; autorização no backend)
   (pages)/terms|privacy|cookies/  documentos legais públicos (logado e deslogado), renderizados do Markdown da API
   (pages)/accept-terms/      reaceite obrigatório de Termos/Privacidade (qualquer role autenticada)
   (pages)/admin/             layout com guarda de role; dashboard (Recharts + loading.tsx), users, tickets, tickets/[id]
@@ -88,7 +90,8 @@ proxy.ts        guarda de rotas por role (Next 16 "proxy", antigo middleware)
 | Paciente | `/patient/*` | + `/support`, `/notifications`, `/change-password` |
 `proxy.ts`: sessão perdida → apaga os cookies e vai para `/login?sessao=expirada`; `/terms`, `/privacy`, `/cookies`
 abrem para todos (logado ou não, sem redirecionar ao dashboard); `/accept-terms` e `/api/*` para qualquer role logada;
-`/support` só paciente/psicólogo (admin vai para `/admin/tickets`); perfis públicos cruzados liberados.
+`/support` só paciente/psicólogo (admin vai para `/admin/tickets`); `/call/*` só paciente/psicólogo (admin → dashboard);
+perfis públicos cruzados liberados.
 
 ## Legal e Privacidade (ADRs 011–015 do backend)
 - **Fonte única** dos documentos: `docs/legal/*.md` do backend, servidos em `GET /legal/documents/{slug}` e renderizados
@@ -131,8 +134,21 @@ espelhados em `TICKET_LIMITS`; o backend impõe (3 abertos, intervalo, duplicida
 - Conteúdo é JSON do editor; renderize **sempre** com `RichTextViewer` (nunca `dangerouslySetInnerHTML`).
 - Nada clínico em `localStorage`/`sessionStorage`/URL; páginas clínicas não devem ser cacheadas.
 
+## Videochamada — Sala Psiconet (ADR 016 do backend, ADR 003 do front, `docs/videochamada/`)
+- **Agendamento:** `MeetingProviderSelector` no `CreateAppointmentModal` (único e recorrente) — "Sala Psiconet" é o padrão
+  quando `getVideoConfigAction()` diz `enabled`; senão só "Link externo". Envia `meetingProvider`; link validado por
+  `lib/meetingLink.ts` (mesma regra do backend).
+- **Entrar:** sempre via `JoinCallButton` (cards, detalhes, agenda do paciente, dashboards). Sala Psiconet: habilitado só na
+  janela `joinOpensAt`/`joinClosesAt` **do servidor** (`lib/videoCall.ts`). Link externo: `toSafeExternalUrl` + `rel="noopener noreferrer"`
+  — nunca monte `href` de link externo à mão.
+- **Página `/call/[appointmentId]`:** lobby → sala → fim (`components/Organism/VideoCall/`). SDK por `next/dynamic` (`CallLoader`).
+  Credencial por `joinVideoCallAction` (Server Action) — token **só em memória**. Reconexão: SDK + até 3 reentradas automáticas.
+- **Cabeçalhos:** `camera`/`microphone` = `self` só em `/call/*`; origens do provedor só via `VIDEO_CSP_ORIGINS`.
+- **Desligar:** flag no backend (`VIDEO_ENABLED=false`) — a opção some sozinha; nada a mudar no front.
+- **Não fazemos:** gravação, chat, compartilhamento de tela; não usar prefabs do LiveKit (`PreJoin` grava em `localStorage`).
+
 ## Notificações
-- `NotificationType` espelha o enum do backend, incluindo `TICKET_REPLIED`, `TICKET_CLOSED`, `ADMIN_ANNOUNCEMENT`,
+- `NotificationType` espelha o enum do backend, incluindo `VIDEO_SESSION_REMINDER`/`VIDEO_PARTICIPANT_JOINED` (clique ⇒ `/call/{id}`), `TICKET_REPLIED`, `TICKET_CLOSED`, `ADMIN_ANNOUNCEMENT`,
   `MEDICAL_RECORD_ACCESS_REQUESTED|GRANTED|DENIED` (obrigatórias, exibidas como "Sempre ativa" nas preferências).
 - Destino do clique centralizado em `lib/notificationRoutes.ts` (`referenceType` + `referenceId` + role).
 - Polling do contador a cada 15 s; "marcar todas" usa `PATCH /notifications/read-all`.
@@ -175,6 +191,7 @@ Sistema social onde Pacientes e Psicólogos se conectam:
 - Commits semânticos em português; testes para regras de UI críticas (menu, tabela admin, viewer, apiClient).
 
 ## Nunca faça
+- Guardar token de vídeo fora da memória, gravar a sessão ou carregar o SDK de vídeo fora de `/call`.
 - Chamar a API direto do navegador com o token ou guardar token/dado clínico em `localStorage`/`sessionStorage`.
 - Carregar script/cookie não essencial ou recurso de terceiro sem consentimento e sem atualizar a Política de Cookies.
 - Criar duração de sessão no front (as durações são do backend) ou pré-marcar checkbox de aceite.

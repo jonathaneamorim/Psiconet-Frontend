@@ -14,6 +14,7 @@ A documentação está dividida nas seguintes categorias:
 ### 2. Fluxos Principais
 - [Fluxo de Autenticação](./auth/fluxo-autenticacao.md): Como funciona o JWT, middleware de rotas, cookies e controle de sessão.
 - [Fluxo de Conexões](./conexoes/fluxo-conexoes.md): O ciclo de vida de uma conexão entre paciente e psicólogo.
+- [Videochamada (Sala Psiconet)](./videochamada/pagina-da-chamada.md): `MeetingProviderSelector`, botão "Entrar na chamada", página `/call/[appointmentId]` e roteiro de teste manual.
 
 ### 3. Guias de Desenvolvimento
 - [Padrões de Requisição à API](./api/padroes-requisicao.md): Como utilizar o `apiClient` e os Server Actions.
