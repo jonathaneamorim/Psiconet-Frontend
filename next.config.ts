@@ -64,8 +64,9 @@ const callHeaders = [
 
 // Só no `next dev`: hosts que podem abrir o servidor de desenvolvimento além de localhost (ex.: celular na
 // mesma rede pelo IP do computador). Sem isso o Next 16 recusa os scripts (403) e a página fica sem interação.
-// Padrão: redes locais privadas; DEV_ALLOWED_ORIGINS (separados por espaço ou vírgula) substitui a lista.
-const allowedDevOrigins = (process.env.DEV_ALLOWED_ORIGINS || "192.168.*.* 10.*.*.*")
+// Padrão: redes locais privadas e túneis temporários do cloudflared (teste da videochamada no celular, que
+// exige HTTPS); DEV_ALLOWED_ORIGINS (separados por espaço ou vírgula) substitui a lista.
+const allowedDevOrigins = (process.env.DEV_ALLOWED_ORIGINS || "192.168.*.* 10.*.*.* *.trycloudflare.com")
   .split(/[\s,]+/)
   .filter(Boolean);
 

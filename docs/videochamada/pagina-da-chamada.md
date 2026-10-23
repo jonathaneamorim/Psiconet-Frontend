@@ -77,6 +77,15 @@ nos toggles, mensagens de estado em `aria-live`, confirmação em `ModalShell` (
 - Front: `VIDEO_CSP_ORIGINS` (lida no build/start), ex.: `wss://*.livekit.cloud https://*.livekit.cloud`;
   em desenvolvimento com LiveKit local, `ws://localhost:7880 http://localhost:7880`.
 
+### Teste pelo celular (desenvolvimento)
+Câmera/microfone só funcionam em HTTPS (ou localhost); por `http://IP-do-PC` a página mostra "A videochamada
+precisa de uma conexão segura". Para testar no celular, no mesmo Wi-Fi e sem conta: `scripts/dev-celular.sh` no
+backend (requer `cloudflared`). Ele abre túneis HTTPS temporários para o front e para o LiveKit local, faz o LiveKit
+anunciar o IP do computador (mídia direto pelo Wi-Fi) e ajusta `VIDEO_URL`; reinicie o backend e abra no celular o
+endereço impresso. `scripts/dev-celular.sh stop` desfaz. No front, `allowedDevOrigins` já aceita
+`*.trycloudflare.com` e o `.env.local` precisa de `wss://*.trycloudflare.com https://*.trycloudflare.com` em
+`VIDEO_CSP_ORIGINS`.
+
 ## Roteiro de teste manual (dois navegadores/perfis)
 1. Psicólogo (perfil A) agenda consulta **Online → Sala Psiconet** para daqui a ~35 min (e uma recorrente).
 2. Paciente (perfil B, outro navegador): a agenda mostra "Disponível às HH:mm"; ao abrir a janela o botão
