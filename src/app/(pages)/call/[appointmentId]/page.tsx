@@ -15,6 +15,15 @@ export const metadata = {
 // Credenciais e estado da sala nunca são cacheados.
 export const dynamic = 'force-dynamic';
 
+// Mesma moldura das demais páginas: espaço para a navbar fixa e altura mínima da tela (footer no fim).
+function CallPageFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="w-full min-h-screen bg-slate-50 pt-24 sm:pt-28 pb-10 px-3 sm:px-8">
+      {children}
+    </div>
+  );
+}
+
 /*
  * Página da chamada (psicólogo e paciente). O backend é quem decide se o usuário participa da
  * consulta e se a sala está aberta; aqui só carregamos os dados de exibição e o SDK de vídeo — este
@@ -28,7 +37,8 @@ export default async function CallPage({ params }: { params: Promise<{ appointme
   const appointment = appointmentResult.data;
   if (!appointment || !isInAppVideo(appointment)) {
     return (
-      <section className="max-w-xl mx-auto px-4 py-16 text-center flex flex-col items-center gap-4">
+      <CallPageFrame>
+      <section className="max-w-xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-2xs p-8 text-center flex flex-col items-center gap-4">
         <h1 className="text-xl font-bold text-slate-800">
           {appointment ? 'Esta consulta não usa a Sala Psiconet' : 'Consulta não encontrada'}
         </h1>
@@ -41,6 +51,7 @@ export default async function CallPage({ params }: { params: Promise<{ appointme
           Voltar para a agenda
         </Link>
       </section>
+      </CallPageFrame>
     );
   }
 
@@ -53,11 +64,13 @@ export default async function CallPage({ params }: { params: Promise<{ appointme
   }
 
   return (
-    <CallLoader
-      appointment={appointment}
-      isHost={role === RoleEnum.PSYCHOLOGIST}
-      agendaHref={agendaHref}
-      recordHref={recordHref}
-    />
+    <CallPageFrame>
+      <CallLoader
+        appointment={appointment}
+        isHost={role === RoleEnum.PSYCHOLOGIST}
+        agendaHref={agendaHref}
+        recordHref={recordHref}
+      />
+    </CallPageFrame>
   );
 }

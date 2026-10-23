@@ -42,6 +42,20 @@ o psicólogo, o vínculo (link do prontuário). Renderiza `CallLoader` → `Call
    paciente entrar…", "X saiu da sessão" e sair com confirmação (psicólogo também "Encerrar para todos").
 4. **Fim:** "Você saiu" (pode entrar de novo), "Sessão encerrada", "aberta em outro lugar" ou "Conexão perdida".
 
+**Permissão de câmera/microfone** (`MediaPermissionHelp` + `useMediaPermissions` + `lib/mediaPermission.ts`),
+no lobby e na sala: ao ligar um dispositivo sem permissão, aparece "Permita o acesso à câmera/ao microfone".
+Nenhum navegador deixa o site abrir as configurações de permissão, então:
+- ainda não decidido (`prompt`): "Permitir acesso" refaz o pedido e o **próprio navegador mostra o aviso**;
+- bloqueado (`denied`): passos do navegador em uso (Chrome/Edge, Firefox, Safari), "Já permiti, tentar de novo" e
+  "Recarregar a página". Onde a Permissions API informa mudanças, o dispositivo **liga sozinho** ao ser liberado;
+- permitido no navegador, mas bloqueado pelo sistema operacional: mensagem apontando as configurações de
+  privacidade do Windows/macOS (evita repetir o pedido em loop).
+O elemento HTML `<usermedia>` (pedido nativo a partir da página) ainda está em padronização e só existe no Chrome
+recente — candidato a melhoria progressiva no futuro.
+
+Layout: a página usa a mesma moldura das demais (`min-h-screen`, `pt-24 sm:pt-28` para a navbar fixa); a sala
+ocupa a altura da tela menos essa moldura, e o footer fica sempre abaixo da dobra.
+
 Acessibilidade: controles em `role="toolbar"` com rótulos (texto visível a partir de `sm`), `aria-pressed`
 nos toggles, mensagens de estado em `aria-live`, confirmação em `ModalShell` (Esc fecha, foco no painel).
 
@@ -56,7 +70,10 @@ nos toggles, mensagens de estado em `aria-live`, confirmação em `ModalShell` (
 2. Paciente (perfil B, outro navegador): a agenda mostra "Disponível às HH:mm"; ao abrir a janela o botão
    habilita sozinho. Entrar ⇒ lobby ⇒ "Aguardando o psicólogo entrar…"; notificação quando ele entrar.
 3. Psicólogo entra; conferir vídeo/áudio nos dois sentidos, mudo, câmera, troca de dispositivo, tela cheia.
-4. **Permissão negada:** bloquear câmera no navegador ⇒ mensagem do cadeado; entrar só com áudio.
+4. **Permissão:** (a) primeira visita, recusar o pedido ⇒ aviso com "Permitir acesso", que reabre o pedido do
+   navegador; (b) bloquear a câmera nas configurações do site e clicar em "Câmera desligada" ⇒ passos do navegador;
+   liberar pelo cadeado ⇒ a câmera liga sem recarregar (Chrome/Edge/Firefox); (c) o mesmo dentro da sala, pelo
+   botão de câmera; (d) "Continuar sem câmera" ⇒ entra só com áudio.
 5. **Rede:** desligar o Wi-Fi por ~10 s ⇒ faixa "reconectando…" e retorno; por ~60 s ⇒ nova entrada automática
    ou "Conexão perdida" com "Entrar novamente".
 6. **Saída e reentrada:** paciente sai ⇒ psicólogo vê "saiu da sessão"; paciente reentra.

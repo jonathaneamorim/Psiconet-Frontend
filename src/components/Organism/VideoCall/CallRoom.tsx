@@ -15,11 +15,15 @@ import {
   useTrackToggle,
   useTracks,
 } from '@livekit/components-react';
-import { ConnectionQuality, ConnectionState, DisconnectReason, Track, type RoomOptions } from 'livekit-client';
+import { ConnectionQuality, ConnectionState, DisconnectReason, MediaDeviceFailure, Track, type RoomOptions } from 'livekit-client';
 import { Maximize, Mic, MicOff, Minimize, PhoneOff, Settings, Video, VideoOff } from 'lucide-react';
 import type { VideoJoinResponseDTO } from '@/types/video';
 import { endVideoCallAction } from '@/actions/video';
 import { ModalShell } from '@/components/Molecules/ModalShell';
+import { MediaPermissionHelp } from '@/components/Molecules/MediaPermissionHelp';
+import { useMediaPermissions } from '@/hooks/useMediaPermissions';
+import type { MediaKind } from '@/lib/mediaPermission';
+import { SYSTEM_BLOCKED_MESSAGE, mediaErrorMessage } from '@/lib/videoCall';
 import type { DeviceChoices } from './CallLobby';
 
 export type CallEndReason = 'left' | 'ended' | 'other-device' | 'failed';
@@ -41,6 +45,33 @@ interface Props {
 
 const REJOIN_DELAY_MS = 2000;
 
+// Falhas de dispositivo que não são de permissão viram a mesma mensagem do lobby.
+const FAILURE_ERROR_NAME: Record<string, string> = {
+  [MediaDeviceFailure.NotFound]: 'NotFoundError',
+  [MediaDeviceFailure.DeviceInUse]: 'NotReadableError',
+};
+
+function deviceFailureMessage(failure?: MediaDeviceFailure): string {
+  const error = new Error();
+  error.name = (failure && FAILURE_ERROR_NAME[failure]) ?? '';
+  return mediaErrorMessage(error);
+}
+
+function kindsFromDevice(kind?: MediaDeviceKind): MediaKind[] {
+  if (kind === 'videoinput') return ['camera'];
+  if (kind === 'audioinput') return ['microphone'];
+  return ['camera', 'microphone'];
+}
+
+export interface DeviceIssue {
+  /** Dispositivos sem permissão do navegador (mostra como liberar). */
+  helpKinds: MediaKind[] | null;
+  /** Outras falhas (não encontrado, em uso, bloqueio do sistema). */
+  message: string | null;
+}
+
+const NO_ISSUE: DeviceIssue = { helpKinds: null, message: null };
+
 /**
  * Sala: vídeo da outra pessoa + miniatura própria, controles, qualidade de conexão e reconexão.
  * Sessão 1:1 (o backend limita a sala a 2 participantes). Nada é gravado; não há chat nem
@@ -49,6 +80,29 @@ const REJOIN_DELAY_MS = 2000;
 export function CallRoom({ credentials, choices, isHost, otherName, recordHref, onRejoin, onConnected, onFinished }: Props) {
   const intentionalLeave = useRef(false);
   const [rejoining, setRejoining] = useState(false);
+  const [deviceIssue, setDeviceIssue] = useState<DeviceIssue>(NO_ISSUE);
+  const { permissions, markResult } = useMediaPermissions();
+  const permissionsRef = useRef(permissions);
+  useEffect(() => {
+    permissionsRef.current = permissions;
+  }, [permissions]);
+
+  // Falha ao ligar câmera/microfone (na entrada ou pelos botões da sala).
+  const handleDeviceFailure = useCallback((failure?: MediaDeviceFailure, kind?: MediaDeviceKind) => {
+    if (failure !== MediaDeviceFailure.PermissionDenied) {
+      setDeviceIssue({ helpKinds: null, message: deviceFailureMessage(failure) });
+      return;
+    }
+    const kinds = kindsFromDevice(kind);
+    if (kinds.every((k) => permissionsRef.current[k] === 'granted')) {
+      setDeviceIssue({ helpKinds: null, message: SYSTEM_BLOCKED_MESSAGE });
+      return;
+    }
+    setDeviceIssue((prev) => ({
+      helpKinds: Array.from(new Set([...(prev.helpKinds ?? []), ...kinds])),
+      message: null,
+    }));
+  }, []);
 
   const options = useMemo<RoomOptions>(() => ({
     adaptiveStream: true,
@@ -79,6 +133,7 @@ export function CallRoom({ credentials, choices, isHost, otherName, recordHref, 
       options={options}
       onDisconnected={handleDisconnected}
       onConnected={onConnected}
+      onMediaDeviceFailure={handleDeviceFailure}
       className="contents"
     >
       <RoomStage
@@ -87,6 +142,10 @@ export function CallRoom({ credentials, choices, isHost, otherName, recordHref, 
         otherName={otherName}
         recordHref={recordHref}
         rejoining={rejoining}
+        permissions={permissions}
+        markResult={markResult}
+        deviceIssue={deviceIssue}
+        setDeviceIssue={setDeviceIssue}
         onLeave={() => {
           intentionalLeave.current = true;
         }}
@@ -102,6 +161,10 @@ interface StageProps {
   otherName: string;
   recordHref?: string;
   rejoining: boolean;
+  permissions: ReturnType<typeof useMediaPermissions>['permissions'];
+  markResult: ReturnType<typeof useMediaPermissions>['markResult'];
+  deviceIssue: DeviceIssue;
+  setDeviceIssue: (issue: DeviceIssue | ((prev: DeviceIssue) => DeviceIssue)) => void;
   onLeave: () => void;
 }
 
@@ -113,7 +176,9 @@ const QUALITY: Record<ConnectionQuality, { label: string; bars: number; color: s
   [ConnectionQuality.Unknown]: { label: 'Medindo a conexão', bars: 0, color: 'bg-slate-400' },
 };
 
-function RoomStage({ credentials, isHost, otherName, recordHref, rejoining, onLeave }: StageProps) {
+function RoomStage({
+  credentials, isHost, otherName, recordHref, rejoining, permissions, markResult, deviceIssue, setDeviceIssue, onLeave,
+}: StageProps) {
   const room = useRoomContext();
   const connectionState = useConnectionState();
   const { localParticipant } = useLocalParticipant();
@@ -126,6 +191,28 @@ function RoomStage({ credentials, isHost, otherName, recordHref, rejoining, onLe
 
   const mic = useTrackToggle({ source: Track.Source.Microphone });
   const camera = useTrackToggle({ source: Track.Source.Camera });
+
+  // Ligar um dispositivo bloqueado no navegador falharia em silêncio: mostra como liberar.
+  const toggleDevice = (kind: MediaKind) => {
+    const control = kind === 'camera' ? camera : mic;
+    setDeviceIssue((prev) => ({ ...prev, message: null }));
+    if (!control.enabled && permissions[kind] === 'denied') {
+      setDeviceIssue((prev) => ({ helpKinds: Array.from(new Set([...(prev.helpKinds ?? []), kind])), message: null }));
+      return;
+    }
+    control.toggle();
+  };
+
+  const handlePermissionGranted = useCallback((kinds: MediaKind[]) => {
+    setDeviceIssue(NO_ISSUE);
+    kinds.forEach((kind) => {
+      const enable = kind === 'camera'
+        ? localParticipant.setCameraEnabled(true)
+        : localParticipant.setMicrophoneEnabled(true);
+      // Nova falha volta pelo onMediaDeviceFailure da sala.
+      enable.catch(() => undefined);
+    });
+  }, [localParticipant, setDeviceIssue]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -180,7 +267,7 @@ function RoomStage({ credentials, isHost, otherName, recordHref, rejoining, onLe
   return (
     <div
       ref={containerRef}
-      className={`relative w-full bg-slate-950 overflow-hidden flex flex-col ${isFullscreen ? 'h-screen' : 'h-[calc(100dvh-9rem)] min-h-[420px] rounded-3xl shadow-lg'}`}
+      className={`relative w-full bg-slate-950 overflow-hidden flex flex-col ${isFullscreen ? 'h-screen' : 'h-[calc(100dvh-8.5rem)] sm:h-[calc(100dvh-9.5rem)] min-h-[420px] rounded-3xl shadow-lg'}`}
     >
       {/* Barra superior: quem, qualidade, prontuário */}
       <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between gap-2 p-3 bg-gradient-to-b from-black/60 to-transparent">
@@ -247,13 +334,36 @@ function RoomStage({ credentials, isHost, otherName, recordHref, rejoining, onLe
         </div>
       </div>
 
+      {(deviceIssue.helpKinds || deviceIssue.message) && (
+        <div className="absolute inset-x-3 bottom-24 z-30 flex justify-center">
+          <div className="w-full max-w-md max-h-[60%] overflow-y-auto rounded-2xl shadow-xl">
+            {deviceIssue.helpKinds ? (
+              <MediaPermissionHelp
+                kinds={deviceIssue.helpKinds}
+                permissions={permissions}
+                markResult={markResult}
+                onGranted={handlePermissionGranted}
+                onDismiss={() => setDeviceIssue(NO_ISSUE)}
+              />
+            ) : (
+              <div role="alert" className="p-4 rounded-2xl bg-white text-xs text-red-700 flex items-start justify-between gap-3">
+                <p>{deviceIssue.message}</p>
+                <button type="button" onClick={() => setDeviceIssue(NO_ISSUE)} className="shrink-0 font-semibold text-slate-600 hover:text-slate-800 cursor-pointer">
+                  Fechar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Controles */}
       <div className="absolute bottom-0 inset-x-0 z-20 p-3 sm:p-4 flex flex-wrap items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-transparent" role="toolbar" aria-label="Controles da chamada">
-        <button type="button" onClick={() => mic.toggle()} disabled={mic.pending} aria-pressed={!mic.enabled} className={controlClass(mic.enabled)}>
+        <button type="button" onClick={() => toggleDevice('microphone')} disabled={mic.pending} aria-pressed={!mic.enabled} className={controlClass(mic.enabled)}>
           {mic.enabled ? <Mic className="w-4 h-4" aria-hidden="true" /> : <MicOff className="w-4 h-4" aria-hidden="true" />}
           <span className="sr-only sm:not-sr-only">{mic.enabled ? 'Silenciar' : 'Ativar microfone'}</span>
         </button>
-        <button type="button" onClick={() => camera.toggle()} disabled={camera.pending} aria-pressed={!camera.enabled} className={controlClass(camera.enabled)}>
+        <button type="button" onClick={() => toggleDevice('camera')} disabled={camera.pending} aria-pressed={!camera.enabled} className={controlClass(camera.enabled)}>
           {camera.enabled ? <Video className="w-4 h-4" aria-hidden="true" /> : <VideoOff className="w-4 h-4" aria-hidden="true" />}
           <span className="sr-only sm:not-sr-only">{camera.enabled ? 'Desligar câmera' : 'Ligar câmera'}</span>
         </button>

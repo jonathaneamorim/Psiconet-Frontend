@@ -6,7 +6,10 @@ import { useMediaDevices, usePreviewTracks, useTrackVolume } from '@livekit/comp
 import { Track, type LocalAudioTrack, type LocalVideoTrack } from 'livekit-client';
 import type { AppointmentDTO } from '@/types/appointment';
 import { formatAppointmentDate, formatAppointmentTime } from '@/lib/calendar';
-import { mediaErrorMessage } from '@/lib/videoCall';
+import { SYSTEM_BLOCKED_MESSAGE, mediaErrorMessage } from '@/lib/videoCall';
+import { isPermissionError, type MediaKind } from '@/lib/mediaPermission';
+import { useMediaPermissions } from '@/hooks/useMediaPermissions';
+import { MediaPermissionHelp } from '@/components/Molecules/MediaPermissionHelp';
 
 export interface DeviceChoices {
   audioEnabled: boolean;
@@ -27,6 +30,7 @@ interface Props {
 /**
  * Pré-entrada: pede câmera/microfone com explicação em caso de bloqueio, permite escolher e testar os
  * dispositivos (prévia da câmera e medidor do microfone) e lembra que a sessão não é gravada.
+ * Sem permissão, ligar o dispositivo mostra como liberar (pedido do navegador ou passos de desbloqueio).
  */
 export function CallLobby({ appointment, isHost, otherName, error, agendaHref, onJoin }: Props) {
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -35,14 +39,65 @@ export function CallLobby({ appointment, isHost, otherName, error, agendaHref, o
   const [audioDeviceId, setAudioDeviceId] = useState<string | undefined>();
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [helpKinds, setHelpKinds] = useState<MediaKind[] | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { permissions, markResult } = useMediaPermissions();
+
+  // O SDK refaz o pedido de mídia quando o callback de erro muda; por isso ele lê o estado por ref.
+  const enabledRef = useRef({ camera: videoEnabled, microphone: audioEnabled });
+  const permissionsRef = useRef(permissions);
+  useEffect(() => {
+    enabledRef.current = { camera: videoEnabled, microphone: audioEnabled };
+    permissionsRef.current = permissions;
+  }, [videoEnabled, audioEnabled, permissions]);
 
   const options = useMemo(() => ({
     audio: audioEnabled ? { deviceId: audioDeviceId } : false,
     video: videoEnabled ? { deviceId: videoDeviceId } : false,
   }), [audioEnabled, audioDeviceId, videoEnabled, videoDeviceId]);
 
-  const handleMediaError = useCallback((err: Error) => setMediaError(mediaErrorMessage(err)), []);
+  const handleMediaError = useCallback((err: Error) => {
+    if (!isPermissionError(err)) {
+      setMediaError(mediaErrorMessage(err));
+      return;
+    }
+    // Sem permissão: desliga o que foi pedido (evita novas tentativas) e explica como liberar.
+    const requested = (['camera', 'microphone'] as const).filter((kind) => enabledRef.current[kind]);
+    if (requested.length && requested.every((kind) => permissionsRef.current[kind] === 'granted')) {
+      // O site tem permissão, mas o sistema operacional bloqueia o dispositivo.
+      setMediaError(SYSTEM_BLOCKED_MESSAGE);
+      return;
+    }
+    if (requested.includes('camera')) setVideoEnabled(false);
+    if (requested.includes('microphone')) setAudioEnabled(false);
+    setHelpKinds(requested.length ? [...requested] : ['camera', 'microphone']);
+  }, []);
+
+  const setKindEnabled = (kind: MediaKind, on: boolean) => {
+    if (kind === 'camera') setVideoEnabled(on);
+    else setAudioEnabled(on);
+  };
+
+  const toggleKind = (kind: MediaKind) => {
+    setMediaError(null);
+    if (kind === 'camera' ? videoEnabled : audioEnabled) {
+      setKindEnabled(kind, false);
+      return;
+    }
+    // Bloqueado no navegador: tentar de novo falharia em silêncio; mostra como liberar.
+    if (permissions[kind] === 'denied') {
+      setHelpKinds((prev) => Array.from(new Set([...(prev ?? []), kind])));
+      return;
+    }
+    setKindEnabled(kind, true);
+  };
+
+  const handlePermissionGranted = useCallback((kinds: MediaKind[]) => {
+    kinds.forEach((kind) => (kind === 'camera' ? setVideoEnabled(true) : setAudioEnabled(true)));
+    setHelpKinds(null);
+    setMediaError(null);
+  }, []);
+
   const tracks = usePreviewTracks(options, handleMediaError);
   const videoTrack = tracks?.find((t) => t.kind === Track.Kind.Video) as LocalVideoTrack | undefined;
   const audioTrack = tracks?.find((t) => t.kind === Track.Kind.Audio) as LocalAudioTrack | undefined;
@@ -94,10 +149,10 @@ export function CallLobby({ appointment, isHost, otherName, error, agendaHref, o
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" aria-pressed={audioEnabled} onClick={() => setAudioEnabled((v) => !v)} className={toggleClass(audioEnabled)}>
+          <button type="button" aria-pressed={audioEnabled} onClick={() => toggleKind('microphone')} className={toggleClass(audioEnabled)}>
             {audioEnabled ? 'Microfone ligado' : 'Microfone desligado'}
           </button>
-          <button type="button" aria-pressed={videoEnabled} onClick={() => setVideoEnabled((v) => !v)} className={toggleClass(videoEnabled)}>
+          <button type="button" aria-pressed={videoEnabled} onClick={() => toggleKind('camera')} className={toggleClass(videoEnabled)}>
             {videoEnabled ? 'Câmera ligada' : 'Câmera desligada'}
           </button>
           {audioEnabled && audioTrack && (
@@ -169,6 +224,15 @@ export function CallLobby({ appointment, isHost, otherName, error, agendaHref, o
           </p>
         )}
 
+        {helpKinds && (
+          <MediaPermissionHelp
+            kinds={helpKinds}
+            permissions={permissions}
+            markResult={markResult}
+            onGranted={handlePermissionGranted}
+            onDismiss={() => setHelpKinds(null)}
+          />
+        )}
         {mediaError && (
           <p role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">{mediaError}</p>
         )}

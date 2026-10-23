@@ -75,6 +75,10 @@ export function videoJoinErrorMessage(result: { status?: number; code?: string; 
 }
 
 /** Explicação amigável para falhas de câmera/microfone (getUserMedia). */
+export const SYSTEM_BLOCKED_MESSAGE =
+  'O navegador tem permissão, mas o sistema está bloqueando a câmera ou o microfone. Libere nas configurações de privacidade '
+  + 'do computador (Windows: Configurações > Privacidade > Câmera/Microfone; macOS: Ajustes do Sistema > Privacidade e Segurança) e tente novamente.';
+
 export function mediaErrorMessage(error: unknown): string {
   const name = error instanceof Error ? error.name : '';
   switch (name) {

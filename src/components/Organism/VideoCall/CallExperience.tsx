@@ -64,7 +64,7 @@ export function CallExperience({ appointment, isHost, agendaHref, recordHref }: 
   const otherName = isHost ? appointment.patient.fullName : appointment.psychologist.fullName;
 
   return (
-    <section className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8" aria-labelledby="call-title">
+    <section className="max-w-6xl mx-auto" aria-labelledby="call-title">
       <h1 id="call-title" className="sr-only">Sessão online com {otherName}</h1>
 
       {phase.name === 'lobby' && (
