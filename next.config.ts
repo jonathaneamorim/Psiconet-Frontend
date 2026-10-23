@@ -12,6 +12,17 @@ const apiOrigin = (() => {
 })();
 
 /*
+ * Videochamada integrada (ADR 016 do backend / ADR 003 do front): origens do provedor de vídeo que o
+ * navegador acessa (sinalização wss:// e API https://), separadas por espaço ou vírgula. Ex. LiveKit
+ * Cloud: "wss://*.livekit.cloud https://*.livekit.cloud". Vazio ⇒ nenhuma origem extra (sala não conecta).
+ * Lida no build/start — mude e reinicie.
+ */
+const videoOrigins = (process.env.VIDEO_CSP_ORIGINS || "")
+  .split(/[\s,]+/)
+  .map((origin) => origin.trim())
+  .filter((origin) => /^(wss?|https?):\/\/[a-z0-9*.-]+(:\d+)?$/i.test(origin));
+
+/*
  * Cabeçalhos de segurança (ADR 015 do backend). A Psiconet não carrega nenhum recurso de terceiros
  * (fontes são servidas pelo próprio domínio via next/font), então a CSP só libera a própria origem e
  * a API. 'unsafe-inline' em script-src é exigido pelos scripts inline de hidratação do Next sem
@@ -24,7 +35,9 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${apiOrigin}`.trim(),
   "font-src 'self' data:",
-  `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self'${videoOrigins.length ? ` ${videoOrigins.join(" ")}` : ""}${isDev ? " ws: wss:" : ""}`,
+  // Vídeo/áudio da chamada chegam como MediaStream (srcObject); blob: cobre os elementos de mídia do SDK.
+  "media-src 'self' blob:",
   "frame-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -43,10 +56,19 @@ const securityHeaders = [
   ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]),
 ];
 
+// Câmera e microfone liberados SÓ para a própria origem e SÓ na página da chamada (o último cabeçalho
+// com a mesma chave prevalece no Next).
+const callHeaders = [
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()" },
+];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/call/:path*", headers: callHeaders },
+    ];
   },
   async redirects() {
     return [

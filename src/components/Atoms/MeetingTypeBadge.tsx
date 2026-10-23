@@ -1,11 +1,18 @@
-import type { MeetingType } from '@/types/appointment';
+import type { MeetingProvider, MeetingType } from '@/types/appointment';
 
 interface Props {
   type: MeetingType;
+  /** Diferencia a Sala Psiconet (vídeo integrado) do link externo (Meet/Zoom). */
+  provider?: MeetingProvider;
   size?: 'sm' | 'md';
 }
 
-export function MeetingTypeBadge({ type, size = 'md' }: Props) {
+const VIDEO_LABELS: Record<MeetingProvider, string> = {
+  IN_APP: 'Vídeo integrado',
+  EXTERNAL_LINK: 'Link externo',
+};
+
+export function MeetingTypeBadge({ type, provider, size = 'md' }: Props) {
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-[11px] gap-1' : 'px-2.5 py-1 text-xs gap-1.5';
 
   if (type === 'VIDEO_CALL') {
@@ -16,7 +23,7 @@ export function MeetingTypeBadge({ type, size = 'md' }: Props) {
         <svg className="w-3.5 h-3.5 flex-shrink-0 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
-        Online (Vídeo)
+        {provider ? VIDEO_LABELS[provider] : 'Online (Vídeo)'}
       </span>
     );
   }

@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { AppointmentCreateDTO, LocationDTO, MeetingType } from '@/types/appointment';
+import type { AppointmentCreateDTO, LocationDTO, MeetingProvider, MeetingType } from '@/types/appointment';
 import type { ActiveConnectionDTO } from '@/types/connection';
 import type { RecurrenceFrequency, RecurrenceRuleCreateDTO, DayOfWeek } from '@/types/recurrence';
 import { getActiveConnectionsAction } from '@/actions/connections';
 import { getMyPsychologistProfileAction } from '@/actions/profile';
+import { getVideoConfigAction } from '@/actions/video';
+import { validateExternalMeetingLink } from '@/lib/meetingLink';
 import { PriceInput } from './PriceInput';
+import { MeetingProviderSelector } from './MeetingProviderSelector';
 import { DurationInput } from './DurationInput';
 import { parseCurrencyToNumber } from '@/lib/currency';
 import {
@@ -70,6 +73,9 @@ export function CreateAppointmentModal({
   // Campos compartilhados
   const [meetingType, setMeetingType] = useState<MeetingType>('VIDEO_CALL');
   const [meetingLink, setMeetingLink] = useState('');
+  const [meetingProvider, setMeetingProvider] = useState<MeetingProvider>('IN_APP');
+  const [inAppVideoAvailable, setInAppVideoAvailable] = useState(false);
+  const [meetingLinkError, setMeetingLinkError] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -124,6 +130,8 @@ export function CreateAppointmentModal({
     setAdjustForWeekend(false);
     setMeetingType('VIDEO_CALL');
     setMeetingLink('');
+    setMeetingProvider('IN_APP');
+    setMeetingLinkError(null);
     setTitle('');
     setDescription('');
     setPrice('');
@@ -179,6 +187,12 @@ export function CreateAppointmentModal({
       setPrice(String(selectedPatient.user.defaultPrice).replace('.', ','));
     }
   }, [selectedPatient, priceTouched]);
+
+  // Sala Psiconet só aparece com a videochamada integrada ligada no backend (feature flag).
+  useEffect(() => {
+    if (!isOpen) return;
+    getVideoConfigAction().then((config) => setInAppVideoAvailable(config.enabled));
+  }, [isOpen]);
 
   // Busca o endereço de consultório cadastrado nas configurações do psicólogo, para oferecer
   // como sugestão pré-preenchida ao marcar uma consulta presencial.
@@ -272,10 +286,17 @@ export function CreateAppointmentModal({
       return;
     }
 
-    if (meetingType === 'VIDEO_CALL' && !meetingLink.trim()) {
-      setFormError('Informe o link da chamada de vídeo (ex: Google Meet, Zoom).');
-      setFieldErrors({ meetingLink: true });
-      return;
+    // Sem a Sala Psiconet disponível, toda chamada online usa link externo.
+    const provider: MeetingProvider = inAppVideoAvailable ? meetingProvider : 'EXTERNAL_LINK';
+    const usesExternalLink = meetingType === 'VIDEO_CALL' && provider === 'EXTERNAL_LINK';
+
+    if (usesExternalLink) {
+      const linkError = validateExternalMeetingLink(meetingLink);
+      if (linkError) {
+        setFormError(linkError);
+        setMeetingLinkError(linkError);
+        return;
+      }
     }
 
     if (meetingType === 'IN_PERSON' && (!street.trim() || !city.trim() || !state.trim())) {
@@ -369,7 +390,8 @@ export function CreateAppointmentModal({
         endDate: recurrenceEndDate || undefined,
         title: title.trim() || undefined,
         meetingType,
-        meetingLink: meetingType === 'VIDEO_CALL' ? meetingLink.trim() : undefined,
+        meetingProvider: meetingType === 'VIDEO_CALL' ? provider : undefined,
+        meetingLink: usesExternalLink ? meetingLink.trim() : undefined,
         location,
         price: parsedPrice,
         adjustForWeekend,
@@ -411,7 +433,8 @@ export function CreateAppointmentModal({
       title: title.trim() || undefined,
       description: description.trim() || undefined,
       meetingType,
-      meetingLink: meetingType === 'VIDEO_CALL' ? meetingLink.trim() : undefined,
+      meetingProvider: meetingType === 'VIDEO_CALL' ? provider : undefined,
+      meetingLink: usesExternalLink ? meetingLink.trim() : undefined,
       location,
       price: parsedPrice,
     };
@@ -814,7 +837,7 @@ export function CreateAppointmentModal({
                 type="button"
                 onClick={() => {
                   selectInPersonMeeting();
-                  clearFieldError('meetingLink');
+                  setMeetingLinkError(null);
                 }}
                 className={`py-2.5 px-3 text-xs font-semibold rounded-xl border flex items-center justify-center gap-2 transition-all cursor-pointer ${meetingType === 'IN_PERSON'
                   ? 'bg-teal-50 border-teal-300 text-teal-700 shadow-2xs'
@@ -831,22 +854,20 @@ export function CreateAppointmentModal({
           </div>
 
           {meetingType === 'VIDEO_CALL' ? (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-700">
-                Link da Videochamada <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="url"
-                value={meetingLink}
-                onChange={(e) => {
-                  setMeetingLink(e.target.value);
-                  clearFieldError('meetingLink');
-                }}
-                placeholder="https://meet.google.com/abc-defg-hij ou link do Zoom"
-                required
-                className={`w-full text-xs p-3 rounded-xl border bg-slate-50 focus:bg-white focus:outline-none transition-all ${errorRing('meetingLink')}`}
-              />
-            </div>
+            <MeetingProviderSelector
+              value={meetingProvider}
+              onChange={(value) => {
+                setMeetingProvider(value);
+                setMeetingLinkError(null);
+              }}
+              inAppAvailable={inAppVideoAvailable}
+              meetingLink={meetingLink}
+              onMeetingLinkChange={(value) => {
+                setMeetingLink(value);
+                setMeetingLinkError(null);
+              }}
+              linkError={meetingLinkError}
+            />
           ) : (
             <div className="flex flex-col gap-2.5 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
               <p className="text-xs font-bold text-slate-700">Endereço do Consultório / Atendimento</p>

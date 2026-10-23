@@ -7,6 +7,7 @@ import { FinancialSummaryCard } from '@/components/Organism/FinancialSummaryCard
 import { ROUTES } from '@/config/routes';
 import { AppointmentStatusBadge } from '@/components/Atoms/AppointmentStatusBadge';
 import { MeetingTypeBadge } from '@/components/Atoms/MeetingTypeBadge';
+import { JoinCallButton } from '@/components/Molecules/JoinCallButton';
 import {
   formatAppointmentDate,
   formatAppointmentTime,
@@ -195,18 +196,9 @@ export default async function DashboardPsicologo() {
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-center">
-                      <MeetingTypeBadge type={app.meetingType} size="sm" />
+                      <MeetingTypeBadge type={app.meetingType} provider={app.meetingProvider} size="sm" />
                       <AppointmentStatusBadge status={app.status} size="sm" />
-                      {app.meetingType === 'VIDEO_CALL' && app.meetingLink && app.status === 'ACCEPTED' && (
-                        <a
-                          href={app.meetingLink.startsWith('http') ? app.meetingLink : `https://${app.meetingLink}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-2xs"
-                        >
-                          Entrar
-                        </a>
-                      )}
+                      <JoinCallButton appointment={app} />
                     </div>
                   </div>
                 ))}

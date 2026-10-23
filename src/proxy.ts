@@ -91,6 +91,11 @@ export async function proxy(request: NextRequest) {
     if (isLegalPage) return next();
     if (isPublicPage) return redirect(userDashboard);
 
+    // Sala de vídeo: psicólogo e paciente (a participação na consulta é validada pelo backend)
+    if (pathname.startsWith(`${ROUTES.CALL}/`)) {
+        return userRole === RoleEnum.ADMIN ? redirect(userDashboard) : next();
+    }
+
     // Rotas acessíveis por qualquer role autenticado
     const isSharedAuthRoute = pathname.startsWith('/notifications')
         || pathname === ROUTES.CHANGE_PASSWORD
@@ -140,6 +145,7 @@ export const config = {
         '/change-password',
         '/support',
         '/support/:path*',
+        '/call/:path*',
         '/admin/:path*',
         '/psychologist/:path*',
         '/patient/:path*',

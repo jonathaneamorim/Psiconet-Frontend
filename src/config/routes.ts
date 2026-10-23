@@ -30,6 +30,8 @@ export const ROUTES = {
     PRIVACY: '/privacy',
     COOKIES: '/cookies',
     ACCEPT_TERMS: '/accept-terms',
+    /** Sala de vídeo integrada: /call/[appointmentId] (psicólogo e paciente; autorização no backend). */
+    CALL: '/call',
 } as const;
 
 export const PUBLIC_ROUTES = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.REGISTER, ROUTES.ABOUT] as const;

@@ -6,11 +6,17 @@ import type { NotificationDTO } from '@/types/notification';
  * Comunicados do administrador não têm página própria: ficam na central de notificações.
  */
 export function resolveNotificationRoute(
-  notification: Pick<NotificationDTO, 'referenceType' | 'referenceId'>,
+  notification: Pick<NotificationDTO, 'referenceType' | 'referenceId' | 'type'>,
   role: RoleEnum | null
 ): string | null {
   if (!role) return null;
-  const { referenceType, referenceId } = notification;
+  const { referenceType, referenceId, type } = notification;
+
+  // Lembrete / psicólogo entrou: direto para a sala da consulta (o backend valida acesso e janela).
+  if ((type === 'VIDEO_SESSION_REMINDER' || type === 'VIDEO_PARTICIPANT_JOINED') && referenceId
+      && (role === RoleEnum.PATIENT || role === RoleEnum.PSYCHOLOGIST)) {
+    return `/call/${referenceId}`;
+  }
 
   if (referenceType === 'TICKET') {
     if (role === RoleEnum.ADMIN) return referenceId ? `/admin/tickets/${referenceId}` : '/admin/tickets';

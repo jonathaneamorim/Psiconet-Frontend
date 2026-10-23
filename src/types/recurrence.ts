@@ -48,6 +48,7 @@ export interface RecurrenceRuleCreateDTO {
   endDate?: string;
   title?: string;
   meetingType: MeetingType;
+  meetingProvider?: MeetingProvider;
   meetingLink?: string;
   location?: LocationDTO;
   price?: number;

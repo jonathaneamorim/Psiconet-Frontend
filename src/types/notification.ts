@@ -11,6 +11,8 @@ export type NotificationReferenceType =
 export type NotificationType =
   | 'APPOINTMENT_SCHEDULED'
   | 'APPOINTMENT_CANCELLED'
+  | 'VIDEO_SESSION_REMINDER'
+  | 'VIDEO_PARTICIPANT_JOINED'
   | 'CONNECTION_REQUESTED'
   | 'CONNECTION_ACCEPTED'
   | 'PAYMENT_PENDING'

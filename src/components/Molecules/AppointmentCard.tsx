@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { AppointmentDTO } from '@/types/appointment';
 import { AppointmentStatusBadge } from '@/components/Atoms/AppointmentStatusBadge';
 import { MeetingTypeBadge } from '@/components/Atoms/MeetingTypeBadge';
+import { JoinCallButton } from '@/components/Molecules/JoinCallButton';
 import {
   formatAppointmentDate,
   formatAppointmentTime,
@@ -56,7 +57,7 @@ export function AppointmentCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <MeetingTypeBadge type={appointment.meetingType} size="sm" />
+          <MeetingTypeBadge type={appointment.meetingType} provider={appointment.meetingProvider} size="sm" />
           <AppointmentStatusBadge status={appointment.status} size="sm" />
         </div>
       </div>
@@ -107,19 +108,7 @@ export function AppointmentCard({
           </div>
         </div>
 
-        {appointment.meetingType === 'VIDEO_CALL' && appointment.meetingLink && isAccepted && (
-          <a
-            href={appointment.meetingLink.startsWith('http') ? appointment.meetingLink : `https://${appointment.meetingLink}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-2xs flex-shrink-0 whitespace-nowrap"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            Entrar na Chamada
-          </a>
-        )}
+        <JoinCallButton appointment={appointment} />
       </div>
 
       {appointment.description && (

@@ -7,6 +7,7 @@ import { FinancialSummaryCard } from '@/components/Organism/FinancialSummaryCard
 import { ROUTES } from '@/config/routes';
 import { AppointmentStatusBadge } from '@/components/Atoms/AppointmentStatusBadge';
 import { MeetingTypeBadge } from '@/components/Atoms/MeetingTypeBadge';
+import { JoinCallButton } from '@/components/Molecules/JoinCallButton';
 import {
   formatAppointmentDate,
   formatAppointmentTime,
@@ -98,7 +99,7 @@ export default async function DashboardPaciente() {
                   Próxima Sessão
                 </span>
                 <AppointmentStatusBadge status={nextAppointment.status} size="sm" />
-                <MeetingTypeBadge type={nextAppointment.meetingType} size="sm" />
+                <MeetingTypeBadge type={nextAppointment.meetingType} provider={nextAppointment.meetingProvider} size="sm" />
               </div>
 
               <div>
@@ -126,19 +127,7 @@ export default async function DashboardPaciente() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
-              {nextAppointment.meetingType === 'VIDEO_CALL' && nextAppointment.meetingLink && (
-                <a
-                  href={nextAppointment.meetingLink.startsWith('http') ? nextAppointment.meetingLink : `https://${nextAppointment.meetingLink}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Entrar na Consulta Online
-                </a>
-              )}
+              <JoinCallButton appointment={nextAppointment} />
 
               <Link
                 href={ROUTES.PATIENT_APPOINTMENTS}
@@ -229,7 +218,7 @@ export default async function DashboardPaciente() {
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-center">
-                      <MeetingTypeBadge type={app.meetingType} size="sm" />
+                      <MeetingTypeBadge type={app.meetingType} provider={app.meetingProvider} size="sm" />
                       <AppointmentStatusBadge status={app.status} size="sm" />
                       <Link
                         href={ROUTES.PATIENT_APPOINTMENTS}
