@@ -1,7 +1,7 @@
 # Psiconet Frontend — Guia para agentes e desenvolvedores
 
 > Fonte oficial de verdade do frontend. Projeto irmão: **Psiconet-Backend** (Spring Boot) —
-> `../Psiconet-Backend/CLAUDE.md` (contrato de API, regras de negócio, ADRs 000–017 em `docs/decisoes/`).
+> `../Psiconet-Backend/CLAUDE.md` (contrato de API, regras de negócio, ADRs 000–019 em `docs/decisoes/`; backend em Spring Boot 4.1 / Java 25, ADR 018).
 > ADRs do frontend: `docs/decisoes/` (001 gráficos/Recharts, 002 editor/TipTap, 003 videochamada/LiveKit).
 > Segurança: `docs/seguranca/auditoria-2026-11-11.md` (e a matriz de autorização no backend).
 
@@ -21,7 +21,7 @@ react-hot-toast · nextjs-toploader · **Recharts 3** (dashboard admin) · **Tip
 npm ci              # instala dependências
 npm run dev         # http://localhost:3000 (backend em NEXT_PUBLIC_API_URL, padrão :8080)
 npm run build       # build de produção (inclui checagem de tipos)
-npm test            # Jest + Testing Library (140+ testes)
+npm test            # Jest + Testing Library (150+ testes)
 npm run lint        # ESLint 9 + eslint-config-next (ESLint 10 ainda não é suportado pelos plugins)
 npx tsc --noEmit    # checagem de tipos isolada
 ```
@@ -78,6 +78,7 @@ proxy.ts        guarda de rotas por role (Next 16 "proxy", antigo middleware)
   - **429** (`code: RATE_LIMITED`) → mensagem amigável com o tempo de espera (o backend envia `Retry-After`);
   - 405/413/415/422/502/503/504 sem corpo JSON → mensagem própria (`HTTP_ERRORS`); sucesso sem corpo devolve `status`;
   - recurso de outro usuário → **404** (anti-IDOR do backend), papel errado → **403**;
+  - **409 `SCHEDULE_OVERLAP`** traz `conflicts`: a tela pede confirmação (não é erro genérico — ver Agendamento);
   - falha de rede → "Erro de conexão" + log no servidor (método, caminho, tipo — nunca token/corpo);
   - **401** em rota autenticada → `/login?sessao=expirada` (o proxy apaga os cookies e o login mostra o aviso);
   - **403 `PASSWORD_CHANGE_REQUIRED`** → `/change-password?obrigatoria=1`; **403 `CONSENT_REQUIRED`** → `/accept-terms`;
@@ -138,6 +139,16 @@ espelhados em `TICKET_LIMITS`; o backend impõe (3 abertos, intervalo, duplicida
 - Paciente: `/patient/medical-records` — solicita acesso, vê situação/justificativa; `/[requestId]` somente leitura e PDF.
 - Conteúdo é JSON do editor; renderize **sempre** com `RichTextViewer` (nunca `dangerouslySetInnerHTML`).
 - Nada clínico em `localStorage`/`sessionStorage`/URL; páginas clínicas não devem ser cacheadas.
+
+## Agendamento — sobreposição de horário (ADR 019 do backend)
+- O psicólogo pode agendar no horário de outra consulta **só depois de avisado e de confirmar**:
+  `useOverlapCheck` (pré-checagem com debounce de 400 ms) → `OverlapWarning` (faixa âmbar, `role="status"`, não bloqueia) →
+  409 `SCHEDULE_OVERLAP` ⇒ `OverlapConfirmDialog` (`role="alertdialog"`, foco em "Voltar") ⇒ reenvio com `acknowledgeOverlap: true`.
+  Handlers de criação devolvem `CreateOutcome` (`{ overlapConflicts }` no 409). Série: rascunho verificado com reunião neutra.
+- Selo `OverlapBadge` (ícone + texto acessível) **só na visão do psicólogo** e só se `hasOverlap` (card, detalhes, painel,
+  calendário e ocorrências previstas da série). O backend nem envia esses campos ao paciente.
+- Calendário: consultas e ocorrências previstas do mesmo dia aparecem juntas — nada fica escondido atrás de outra.
+- Notificação `SCHEDULE_OVERLAP` → `/psychologist/appointments?consulta=<id>` (abre a consulta e seleciona o dia).
 
 ## Videochamada — Sala Psiconet (ADR 016 do backend, ADR 003 do front, `docs/videochamada/`)
 - **Agendamento:** `MeetingProviderSelector` no `CreateAppointmentModal` (único e recorrente) — "Sala Psiconet" é o padrão
