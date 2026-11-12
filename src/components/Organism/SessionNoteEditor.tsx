@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { RichTextEditor } from '@/components/Molecules/RichTextEditor';
 import { ConfirmModal } from '@/components/Molecules/ConfirmModal';
@@ -65,7 +65,10 @@ export function SessionNoteEditor({ linkId, appointments, draft, onSaved, onFina
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlight = useRef<Promise<SessionNote | null> | null>(null);
   const latest = useRef({ noteId, version, type, title, appointmentId, doc });
-  latest.current = { noteId, version, type, title, appointmentId, doc };
+  // Atualizado após cada render (não durante): o salvamento roda em timer/handler, sempre depois do commit.
+  useLayoutEffect(() => {
+    latest.current = { noteId, version, type, title, appointmentId, doc };
+  });
   const dirty = saveState === 'dirty' || saveState === 'error';
 
   const save = useCallback(async (): Promise<SessionNote | null> => {

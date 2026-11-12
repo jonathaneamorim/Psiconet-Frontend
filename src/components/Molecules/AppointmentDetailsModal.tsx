@@ -250,7 +250,7 @@ export function AppointmentDetailsModal({
               </p>
               {appointment.cancellationReason && (
                 <p className="text-xs text-red-700 italic">
-                  Motivo: "{appointment.cancellationReason}"
+                  Motivo: &ldquo;{appointment.cancellationReason}&rdquo;
                 </p>
               )}
             </div>

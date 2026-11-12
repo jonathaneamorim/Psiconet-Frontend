@@ -145,7 +145,7 @@ export function AppointmentCard({
             </svg>
             Cancelada por {appointment.cancelledBy === 'PATIENT' ? 'Paciente' : 'Psicólogo'}:
           </div>
-          <p className="pl-5 italic text-red-600">"{appointment.cancellationReason}"</p>
+          <p className="pl-5 italic text-red-600">&ldquo;{appointment.cancellationReason}&rdquo;</p>
         </div>
       )}
 

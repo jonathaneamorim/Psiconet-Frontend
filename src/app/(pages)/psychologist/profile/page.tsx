@@ -42,7 +42,7 @@ export default async function MyPsychologistProfilePage() {
             {psychProfile.description && (
               <div className="mt-8">
                 <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                  "{psychProfile.description}"
+                  &ldquo;{psychProfile.description}&rdquo;
                 </p>
               </div>
             )}
