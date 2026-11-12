@@ -22,7 +22,7 @@ jest.mock('@/services/cookieService', () => ({
   },
 }));
 
-function mockFetchOnce(body: string, init: ResponseInit) {
+function mockFetchOnce(body: string | null, init: ResponseInit) {
   const fetchMock = jest.fn().mockResolvedValue(new Response(body, init));
   global.fetch = fetchMock as unknown as typeof fetch;
   return fetchMock;
@@ -79,6 +79,34 @@ describe('apiClient', () => {
     mockFetchOnce('<html>Bad gateway</html>', { status: 429 });
     const result = await apiClient.get('/qualquer', { public: true });
     expect(result.error).toBe('Muitas tentativas em pouco tempo. Aguarde um pouco e tente novamente.');
+  });
+
+  it('sucesso sem corpo (204) devolve o status', async () => {
+    mockFetchOnce(null, { status: 204 });
+    const result = await apiClient.patch('/notifications/read-all', undefined, { public: true });
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(204);
+  });
+
+  it.each([
+    [413, 'Arquivo ou dados grandes demais. Reduza o tamanho e tente novamente.'],
+    [415, 'Formato de envio não suportado.'],
+    [503, 'Serviço temporariamente indisponível. Tente novamente em instantes.'],
+  ])('mensagem amigável para %i sem corpo JSON', async (status, message) => {
+    mockFetchOnce('', { status });
+    const result = await apiClient.get('/qualquer', { public: true });
+    expect(result.error).toBe(message);
+    expect(result.status).toBe(status);
+  });
+
+  it('falha de rede vira mensagem de conexão e fica registrada no log do servidor', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('fetch failed')) as unknown as typeof fetch;
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await apiClient.get('/qualquer', { public: true });
+    expect(result.error).toBe('Erro de conexão com o servidor.');
+    expect(spy).toHaveBeenCalled();
+    expect(String(spy.mock.calls[0])).not.toContain('token-valido');
+    spy.mockRestore();
   });
 
   it('repassa o IP do navegador e o token', async () => {

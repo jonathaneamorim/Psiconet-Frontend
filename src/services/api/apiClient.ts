@@ -40,9 +40,16 @@ const HTTP_ERRORS: Record<number, string> = {
   401: 'Sessão expirada. Faça login novamente.',
   403: 'Você não tem permissão para esta ação.',
   404: 'Recurso não encontrado.',
+  405: 'Operação não permitida.',
   409: 'Conflito: o estado atual não permite esta operação.',
+  413: 'Arquivo ou dados grandes demais. Reduza o tamanho e tente novamente.',
+  415: 'Formato de envio não suportado.',
+  422: 'Não foi possível processar os dados enviados.',
   429: 'Muitas tentativas em pouco tempo. Aguarde um pouco e tente novamente.',
   500: 'Erro interno no servidor. Tente novamente.',
+  502: 'Serviço temporariamente indisponível. Tente novamente em instantes.',
+  503: 'Serviço temporariamente indisponível. Tente novamente em instantes.',
+  504: 'O servidor demorou para responder. Tente novamente.',
 };
 
 function getHttpErrorMessage(status: number, fallback: string): string {
@@ -172,8 +179,10 @@ async function sendRaw<T>(
     }
 
     const data = await readBody(response);
-    return data === undefined ? ({} as ApiResult<T>) : { data: data as T, status: response.status };
-  } catch {
+    return data === undefined ? { status: response.status } : { data: data as T, status: response.status };
+  } catch (error) {
+    // Só método, caminho e tipo do erro no log do servidor — nunca token, corpo ou cabeçalhos.
+    console.error(`[apiClient] Falha de conexão em ${method} ${path.split('?')[0]}:`, error instanceof Error ? error.name : 'erro');
     return { error: 'Erro de conexão com o servidor.' };
   }
 }
