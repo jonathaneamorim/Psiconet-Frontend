@@ -8,6 +8,8 @@ interface Props {
     includeHealthData: boolean;
     termsVersion: string;
     privacyVersion: string;
+    /** Perfil de quem aceita; muda o texto do consentimento de saúde. Padrão: paciente. */
+    role?: string;
     errors?: Record<string, string>;
     onClearError?: (field: string) => void;
 }
@@ -18,7 +20,8 @@ const LINK = "font-semibold text-[var(--primary)] underline underline-offset-2 h
  * Checkboxes de aceite (cadastro e reaceite). Nunca pré-marcados. Os links abrem em nova aba para
  * não perder o preenchimento. As versões vão em campos ocultos: o backend recusa versão desatualizada.
  */
-export function LegalConsentFields({ includeHealthData, termsVersion, privacyVersion, errors = {}, onClearError }: Props) {
+export function LegalConsentFields({ includeHealthData, termsVersion, privacyVersion, role, errors = {}, onClearError }: Props) {
+    const isPsychologist = role === "PSYCHOLOGIST" || role === "psychologist";
     const termsId = useId();
     const healthId = useId();
 
@@ -63,8 +66,9 @@ export function LegalConsentFields({ includeHealthData, termsVersion, privacyVer
                             onChange={() => onClearError?.("acceptHealthData")}
                         />
                         <label htmlFor={healthId} className="text-sm text-slate-800 leading-relaxed">
-                            <strong>Autorizo o tratamento dos meus dados de saúde</strong> pela Psiconet para conectar-me a psicólogos,
-                            organizar minha agenda e permitir que o psicólogo mantenha meu prontuário.
+                            <strong>Autorizo o tratamento dos meus dados de saúde</strong> pela Psiconet{isPsychologist
+                                ? " para operar a plataforma, organizar minha agenda e manter os prontuários dos meus pacientes."
+                                : " para conectar-me a psicólogos, organizar minha agenda e permitir que o psicólogo mantenha meu prontuário."}
                         </label>
                     </div>
                     <p id={`${healthId}-hint`} className="mt-1.5 pl-7 text-xs text-slate-600">

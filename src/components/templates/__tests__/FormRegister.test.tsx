@@ -39,10 +39,10 @@ describe('FormRegister — aceite dos documentos', () => {
     expect(screen.getByText(/autorize o tratamento dos seus dados de saúde/)).toBeInTheDocument();
   });
 
-  it('psicólogo não vê o consentimento de dados de saúde', () => {
+  it('psicólogo também vê o consentimento de dados de saúde', () => {
     render(<FormRegister termsVersion="1.0.0" privacyVersion="1.0.0" />);
     fireEvent.click(screen.getByRole('button', { name: 'Sou Psicólogo' }));
-    expect(screen.queryByRole('checkbox', { name: /dados de saúde/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /dados de saúde/ })).toBeInTheDocument();
   });
 
   it('menor de 18 anos é barrado já no formulário', async () => {

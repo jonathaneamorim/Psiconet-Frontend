@@ -61,8 +61,8 @@ export function FormRegister({ termsVersion, privacyVersion }: FormRegisterProps
         if (formData.get("acceptTerms") !== "on") {
             frontendErrors.acceptTerms = "Para criar a conta, é preciso concordar com os Termos de Uso e a Política de Privacidade.";
         }
-        if (role === RoleEnum.PATIENT && formData.get("acceptHealthData") !== "on") {
-            frontendErrors.acceptHealthData = "Para usar a Psiconet como paciente, autorize o tratamento dos seus dados de saúde.";
+        if (formData.get("acceptHealthData") !== "on") {
+            frontendErrors.acceptHealthData = "Para criar a conta, autorize o tratamento dos seus dados de saúde.";
         }
 
         if (Object.keys(frontendErrors).length > 0) {
@@ -111,39 +111,37 @@ export function FormRegister({ termsVersion, privacyVersion }: FormRegisterProps
                     <button
                         type="button"
                         onClick={() => setRole(RoleEnum.PATIENT)}
-                        className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${
-                            role === RoleEnum.PATIENT 
-                            ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' 
+                        className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${role === RoleEnum.PATIENT
+                            ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50'
                             : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                        }`}
+                            }`}
                     >
                         Sou Paciente
                     </button>
                     <button
                         type="button"
                         onClick={() => setRole(RoleEnum.PSYCHOLOGIST)}
-                        className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${
-                            role === RoleEnum.PSYCHOLOGIST 
-                            ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' 
+                        className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${role === RoleEnum.PSYCHOLOGIST
+                            ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50'
                             : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                        }`}
+                            }`}
                     >
                         Sou Psicólogo
                     </button>
                 </div>
 
                 <div className="flex flex-col gap-3">
-                    <InputLabel 
-                        fieldName="Nome Completo" 
-                        name="fullName" 
-                        inputType="text" 
+                    <InputLabel
+                        fieldName="Nome Completo"
+                        name="fullName"
+                        inputType="text"
                         error={fieldErrors["fullName"]}
                         onClearError={() => clearFieldError("fullName")}
                     />
-                    <InputLabel 
-                        fieldName="Email" 
-                        name="email" 
-                        inputType="email" 
+                    <InputLabel
+                        fieldName="Email"
+                        name="email"
+                        inputType="email"
                         autoComplete="email"
                         error={fieldErrors["email"]}
                         onClearError={() => clearFieldError("email")}
@@ -154,34 +152,34 @@ export function FormRegister({ termsVersion, privacyVersion }: FormRegisterProps
                     />
 
                     {role === RoleEnum.PSYCHOLOGIST && (
-                        <InputLabel 
-                            fieldName="CRP" 
-                            name="crp" 
-                            inputType="text" 
+                        <InputLabel
+                            fieldName="CRP"
+                            name="crp"
+                            inputType="text"
                             error={fieldErrors["crp"]}
                             onClearError={() => clearFieldError("crp")}
                         />
                     )}
 
-                    <InputLabel 
-                        fieldName="Data de Nascimento" 
-                        name="birthDate" 
-                        inputType="date" 
+                    <InputLabel
+                        fieldName="Data de Nascimento"
+                        name="birthDate"
+                        inputType="date"
                         error={fieldErrors["birthDate"]}
                         onClearError={() => clearFieldError("birthDate")}
                     />
-                    <InputLabel 
-                        fieldName="Senha" 
-                        name="password" 
-                        inputType="password" 
+                    <InputLabel
+                        fieldName="Senha"
+                        name="password"
+                        inputType="password"
                         autoComplete="new-password"
                         error={fieldErrors["password"]}
                         onClearError={() => clearFieldError("password")}
                     />
-                    <InputLabel 
-                        fieldName="Repita a senha" 
-                        name="repeatPassword" 
-                        inputType="password" 
+                    <InputLabel
+                        fieldName="Repita a senha"
+                        name="repeatPassword"
+                        inputType="password"
                         autoComplete="new-password"
                         error={fieldErrors["repeatPassword"]}
                         onClearError={() => clearFieldError("repeatPassword")}
@@ -190,7 +188,8 @@ export function FormRegister({ termsVersion, privacyVersion }: FormRegisterProps
 
                 {termsVersion && privacyVersion ? (
                     <LegalConsentFields
-                        includeHealthData={role === RoleEnum.PATIENT}
+                        includeHealthData
+                        role={role}
                         termsVersion={termsVersion}
                         privacyVersion={privacyVersion}
                         errors={fieldErrors}
@@ -206,7 +205,7 @@ export function FormRegister({ termsVersion, privacyVersion }: FormRegisterProps
                     <Button variant="primary" type="submit" className="shadow-md hover:scale-105" disabled={loading || !termsVersion || !privacyVersion}>
                         {loading ? 'Cadastrando...' : 'Criar conta como ' + translateRole(role)}
                     </Button>
-                    
+
                     <div className="flex flex-col gap-2 mt-2 text-sm text-slate-600">
                         <p>
                             Já possui cadastro?{' '}

@@ -30,9 +30,7 @@ export async function registerAction(formData: FormData): Promise<ActionResult> 
     acceptTerms: formData.get('acceptTerms') === 'on',
     termsVersion: formData.get('termsVersion')?.toString() ?? '',
     privacyVersion: formData.get('privacyVersion')?.toString() ?? '',
-    ...(role === RoleEnum.PATIENT && {
-      acceptHealthData: formData.get('acceptHealthData') === 'on',
-    }),
+    acceptHealthData: formData.get('acceptHealthData') === 'on',
     ...(role === RoleEnum.PSYCHOLOGIST && {
       crp: formData.get('crp')?.toString().trim(),
     }),

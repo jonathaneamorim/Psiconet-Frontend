@@ -72,7 +72,7 @@ describe('registerAction', () => {
     expect(post.mock.calls[0][0]).toBe('/auth/register/patient');
   });
 
-  it('envia o aceite e as versões vistas; paciente inclui dados de saúde, psicólogo não', async () => {
+  it('envia o aceite, as versões vistas e os dados de saúde para paciente e psicólogo', async () => {
     post.mockResolvedValue({ data: { message: 'ok', nextStep: 'LOGIN' } });
 
     await registerAction(form(base));
@@ -81,8 +81,7 @@ describe('registerAction', () => {
     }));
 
     await registerAction(form({ ...base, userRole: 'psychologist', crp: '06/1' }));
-    expect(post.mock.calls[1][1]).not.toHaveProperty('acceptHealthData');
-    expect(post.mock.calls[1][1]).toEqual(expect.objectContaining({ acceptTerms: true }));
+    expect(post.mock.calls[1][1]).toEqual(expect.objectContaining({ acceptTerms: true, acceptHealthData: true }));
   });
 
   it('checkbox desmarcado vai como false (o backend recusa)', async () => {
