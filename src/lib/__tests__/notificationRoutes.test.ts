@@ -19,4 +19,8 @@ describe('resolveNotificationRoute', () => {
   it('mantém as rotas existentes', () => {
     expect(resolveNotificationRoute({ referenceType: 'PAYMENT' }, RoleEnum.PATIENT)).toBe('/patient/payments');
   });
+  it('sobreposição na agenda abre a consulta na agenda do psicólogo', () => {
+    expect(resolveNotificationRoute({ type: 'SCHEDULE_OVERLAP', referenceType: 'APPOINTMENT', referenceId: 'apt-1' }, RoleEnum.PSYCHOLOGIST))
+      .toBe('/psychologist/appointments?consulta=apt-1');
+  });
 });

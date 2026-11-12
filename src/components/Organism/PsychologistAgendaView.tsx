@@ -1,5 +1,7 @@
 'use client';
 
+import { getAppointmentAction } from '@/actions/appointments';
+import { useEffect, useRef } from 'react';
 import type { PaginatedResponse } from '@/types/connection';
 import type { AppointmentDTO } from '@/types/appointment';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -14,9 +16,11 @@ import { formatAppointmentDate } from '@/lib/calendar';
 interface Props {
   initialData?: PaginatedResponse<AppointmentDTO>;
   preselectedPatientId?: string;
+  /** Abre esta consulta ao carregar (ex.: notificação de sobreposição) e seleciona o dia dela. */
+  initialAppointmentId?: string;
 }
 
-export function PsychologistAgendaView({ initialData, preselectedPatientId }: Props) {
+export function PsychologistAgendaView({ initialData, preselectedPatientId, initialAppointmentId }: Props) {
   const {
     filteredAppointments,
     selectedDateAppointments,
@@ -51,6 +55,24 @@ export function PsychologistAgendaView({ initialData, preselectedPatientId }: Pr
     handleCreateRecurrence,
     handleCancelAppointment,
   } = useAppointments({ initialData, perspective: 'psychologist' });
+
+  // Só na primeira renderização com o id da URL (?consulta=): quem fecha o modal não o vê reabrir.
+  const openedInitial = useRef(false);
+  useEffect(() => {
+    if (!initialAppointmentId || openedInitial.current) return;
+    openedInitial.current = true;
+    const fromList = initialData?.content.find((a) => a.id === initialAppointmentId);
+    const open = (appointment: AppointmentDTO) => {
+      handleSelectDate(new Date(appointment.startDateTime));
+      openDetailsModal(appointment);
+    };
+    if (fromList) {
+      open(fromList);
+    } else {
+      getAppointmentAction(initialAppointmentId).then((res) => res.data && open(res.data));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAppointmentId]);
 
   return (
     <div className="flex flex-col gap-6">

@@ -18,6 +18,11 @@ export function resolveNotificationRoute(
     return `/call/${referenceId}`;
   }
 
+  // Sobreposição na agenda: abre a consulta na agenda do psicólogo (o dia dela fica selecionado).
+  if (type === 'SCHEDULE_OVERLAP' && role === RoleEnum.PSYCHOLOGIST) {
+    return referenceId ? `/psychologist/appointments?consulta=${encodeURIComponent(referenceId)}` : '/psychologist/appointments';
+  }
+
   if (referenceType === 'TICKET') {
     if (role === RoleEnum.ADMIN) return referenceId ? `/admin/tickets/${referenceId}` : '/admin/tickets';
     return referenceId ? `/support/${referenceId}` : '/support';

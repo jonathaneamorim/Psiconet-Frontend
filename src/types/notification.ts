@@ -13,6 +13,8 @@ export type NotificationType =
   | 'APPOINTMENT_CANCELLED'
   | 'VIDEO_SESSION_REMINDER'
   | 'VIDEO_PARTICIPANT_JOINED'
+  /** Ocorrência recorrente gerada sobre outra consulta (só psicólogo; texto só com data/hora). */
+  | 'SCHEDULE_OVERLAP'
   | 'CONNECTION_REQUESTED'
   | 'CONNECTION_ACCEPTED'
   | 'PAYMENT_PENDING'

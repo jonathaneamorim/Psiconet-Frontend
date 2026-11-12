@@ -27,12 +27,15 @@ export interface ApiResult<T = void> {
   fieldErrors?: Record<string, string>;
   /** Segundos até poder tentar de novo (cabeçalho Retry-After em respostas 429). */
   retryAfter?: number;
+  /** Consultas no mesmo horário (409 `SCHEDULE_OVERLAP`) — tratadas pela tela, não como erro genérico. */
+  conflicts?: unknown[];
 }
 
 interface BackendErrorBody {
   message?: string;
   code?: string;
   errors?: Record<string, string>;
+  conflicts?: unknown[];
 }
 
 const HTTP_ERRORS: Record<number, string> = {
@@ -112,6 +115,7 @@ async function toErrorResult<T>(response: Response, isPublic: boolean): Promise<
     status: response.status,
     code: parsed?.code,
     fieldErrors: parsed?.errors ?? undefined,
+    conflicts: Array.isArray(parsed?.conflicts) ? parsed.conflicts : undefined,
   };
 
   if (response.status === 429) {

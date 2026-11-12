@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { AppointmentCreateDTO, LocationDTO, MeetingProvider, MeetingType } from '@/types/appointment';
+import type { AppointmentCreateDTO, CreateOutcome, LocationDTO, MeetingProvider, MeetingType, OverlapSummary } from '@/types/appointment';
+import { isOverlapOutcome } from '@/types/appointment';
 import type { ActiveConnectionDTO } from '@/types/connection';
 import type { RecurrenceFrequency, RecurrenceRuleCreateDTO, DayOfWeek } from '@/types/recurrence';
 import { getActiveConnectionsAction } from '@/actions/connections';
@@ -11,6 +12,9 @@ import { validateExternalMeetingLink } from '@/lib/meetingLink';
 import { PriceInput } from './PriceInput';
 import { MeetingProviderSelector } from './MeetingProviderSelector';
 import { DurationInput } from './DurationInput';
+import { OverlapWarning } from './OverlapWarning';
+import { OverlapConfirmDialog } from './OverlapConfirmDialog';
+import { useOverlapCheck } from '@/hooks/useOverlapCheck';
 import { parseCurrencyToNumber } from '@/lib/currency';
 import {
   RECURRENCE_FREQUENCY_LABELS,
@@ -29,11 +33,33 @@ import {
   dateStringIsLastDayOfMonth,
 } from '@/lib/recurrence';
 
+/** Fim da consulta única no formato do backend (LocalDateTime sem fuso). */
+function computeEndDateTime(startDateTime: string, durationMinutes: number): string {
+  const endDateObj = new Date(new Date(startDateTime).getTime() + durationMinutes * 60 * 1000);
+  const endYyyy = endDateObj.getFullYear();
+  const endMm = String(endDateObj.getMonth() + 1).padStart(2, '0');
+  const endDd = String(endDateObj.getDate()).padStart(2, '0');
+  const endHh = String(endDateObj.getHours()).padStart(2, '0');
+  const endMin = String(endDateObj.getMinutes()).padStart(2, '0');
+  return `${endYyyy}-${endMm}-${endDd}T${endHh}:${endMin}:00`;
+}
+
+// A pré-checagem do rascunho da série só compara horários: reunião neutra para o backend aceitar o
+// rascunho antes de o psicólogo preencher link/endereço/preço (o envio real usa os dados do formulário).
+const NEUTRAL_DRAFT_MEETING = {
+  meetingType: 'VIDEO_CALL' as MeetingType,
+  meetingProvider: 'EXTERNAL_LINK' as MeetingProvider,
+  meetingLink: 'https://verificacao.psiconet.invalid/horario',
+  location: undefined,
+  price: 0,
+};
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (dto: AppointmentCreateDTO) => Promise<boolean | void>;
-  onConfirmRecurrence?: (treatmentLinkId: string, dto: RecurrenceRuleCreateDTO) => Promise<boolean | void>;
+  /** Pode devolver `{ overlapConflicts }` (409 SCHEDULE_OVERLAP): o modal pede confirmação e reenvia. */
+  onConfirm: (dto: AppointmentCreateDTO) => Promise<CreateOutcome>;
+  onConfirmRecurrence?: (treatmentLinkId: string, dto: RecurrenceRuleCreateDTO) => Promise<CreateOutcome>;
   isMutating: boolean;
   preselectedPatientId?: string;
   initialDate?: Date;
@@ -92,6 +118,12 @@ export function CreateAppointmentModal({
   const [state, setState] = useState('');
 
   const [formError, setFormError] = useState<string | null>(null);
+  // Horário ocupado (409): conflitos a confirmar e o reenvio com acknowledgeOverlap=true
+  const [pendingOverlap, setPendingOverlap] = useState<{
+    conflicts: OverlapSummary[];
+    retry: () => Promise<CreateOutcome>;
+  } | null>(null);
+  const [confirmingOverlap, setConfirmingOverlap] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   const clearFieldError = (field: string) => {
@@ -148,9 +180,68 @@ export function CreateAppointmentModal({
   };
 
   const handleClose = () => {
-    if (isMutating) return;
+    if (isMutating || confirmingOverlap) return;
+    setPendingOverlap(null);
     resetForm();
     onClose();
+  };
+
+  // Aviso em tempo real (ADR 019 do backend): consulta única ou rascunho da série, com debounce.
+  const draftTreatmentLinkId = patients.find((p) => p.user.id === patientId)?.user.treatmentLinkId;
+  const singleStart = date && startTime ? `${date}T${startTime}:00` : '';
+  const overlapRequest = !isOpen || !patientId
+    ? null
+    : !isRecurring
+      ? (singleStart && durationMinutes >= 5 && new Date(singleStart) > new Date()
+        ? { kind: 'single' as const, startDateTime: singleStart, endDateTime: computeEndDateTime(singleStart, durationMinutes) }
+        : null)
+      : (draftTreatmentLinkId && recurrenceStartDate && recurrenceStartTime && recurrenceEndTime
+          && recurrenceEndTime > recurrenceStartTime
+        ? {
+          kind: 'recurring' as const,
+          treatmentLinkId: draftTreatmentLinkId,
+          draft: {
+            frequency,
+            dayOfWeek: FREQUENCIES_WITH_WEEKDAY.includes(frequency) ? dayOfWeek : undefined,
+            intervalDays: frequency === 'EVERY_N_DAYS' ? intervalDays : undefined,
+            startTime: `${recurrenceStartTime}:00`,
+            endTime: `${recurrenceEndTime}:00`,
+            startDate: recurrenceStartDate,
+            endDate: recurrenceEndDate || undefined,
+            adjustForWeekend,
+            ...NEUTRAL_DRAFT_MEETING,
+          } satisfies RecurrenceRuleCreateDTO,
+        }
+        : null);
+  const { overlaps: liveOverlaps, occurrences: liveOccurrences } = useOverlapCheck(overlapRequest);
+
+  /** Trata o resultado do envio: sobreposição ⇒ diálogo de confirmação; sucesso ⇒ fecha. */
+  const handleOutcome = (outcome: CreateOutcome, retry: () => Promise<CreateOutcome>) => {
+    if (isOverlapOutcome(outcome)) {
+      setPendingOverlap({ conflicts: outcome.overlapConflicts, retry });
+      return;
+    }
+    if (outcome !== false) handleClose();
+  };
+
+  const confirmOverlap = async () => {
+    if (!pendingOverlap || confirmingOverlap) return;
+    setConfirmingOverlap(true);
+    try {
+      const outcome = await pendingOverlap.retry();
+      if (isOverlapOutcome(outcome)) {
+        // Nova consulta ocupou o horário entre o aviso e a confirmação: mostra a lista atualizada.
+        setPendingOverlap({ ...pendingOverlap, conflicts: outcome.overlapConflicts });
+        return;
+      }
+      setPendingOverlap(null);
+      if (outcome !== false) {
+        resetForm();
+        onClose();
+      }
+    } finally {
+      setConfirmingOverlap(false);
+    }
   };
 
   useEffect(() => {
@@ -397,10 +488,8 @@ export function CreateAppointmentModal({
         adjustForWeekend,
       };
 
-      const success = await onConfirmRecurrence(treatmentLinkId, dto);
-      if (success !== false) {
-        handleClose();
-      }
+      handleOutcome(await onConfirmRecurrence(treatmentLinkId, dto),
+        () => onConfirmRecurrence(treatmentLinkId, { ...dto, acknowledgeOverlap: true }));
       return;
     }
 
@@ -418,13 +507,7 @@ export function CreateAppointmentModal({
       return;
     }
 
-    const endDateObj = new Date(startDateObj.getTime() + durationMinutes * 60 * 1000);
-    const endYyyy = endDateObj.getFullYear();
-    const endMm = String(endDateObj.getMonth() + 1).padStart(2, '0');
-    const endDd = String(endDateObj.getDate()).padStart(2, '0');
-    const endHh = String(endDateObj.getHours()).padStart(2, '0');
-    const endMin = String(endDateObj.getMinutes()).padStart(2, '0');
-    const endDateTime = `${endYyyy}-${endMm}-${endDd}T${endHh}:${endMin}:00`;
+    const endDateTime = computeEndDateTime(startDateTime, durationMinutes);
 
     const dto: AppointmentCreateDTO = {
       patientId,
@@ -439,10 +522,7 @@ export function CreateAppointmentModal({
       price: parsedPrice,
     };
 
-    const success = await onConfirm(dto);
-    if (success !== false) {
-      handleClose();
-    }
+    handleOutcome(await onConfirm(dto), () => onConfirm({ ...dto, acknowledgeOverlap: true }));
   };
 
   return (
@@ -1009,6 +1089,8 @@ export function CreateAppointmentModal({
             </div>
           )}
 
+          <OverlapWarning overlaps={liveOverlaps} occurrences={isRecurring ? liveOccurrences : []} />
+
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 mt-2">
             <button
               type="button"
@@ -1038,6 +1120,14 @@ export function CreateAppointmentModal({
           </div>
         </form>
       </div>
+      {pendingOverlap && (
+        <OverlapConfirmDialog
+          conflicts={pendingOverlap.conflicts}
+          isSubmitting={confirmingOverlap || isMutating}
+          onConfirm={confirmOverlap}
+          onCancel={() => setPendingOverlap(null)}
+        />
+      )}
     </div>
   );
 }

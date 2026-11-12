@@ -1,5 +1,7 @@
 'use client';
 
+import { describeOverlap } from '@/lib/overlap';
+import { OverlapBadge } from '@/components/Atoms/OverlapBadge';
 import Link from 'next/link';
 import type { AppointmentDTO } from '@/types/appointment';
 import { AppointmentStatusBadge } from '@/components/Atoms/AppointmentStatusBadge';
@@ -100,6 +102,21 @@ export function AppointmentDetailsModal({
               <MeetingTypeBadge type={appointment.meetingType} provider={appointment.meetingProvider} />
             </div>
           </div>
+
+          {perspective === 'psychologist' && appointment.hasOverlap && (
+            <div className="flex flex-col gap-1.5 p-3.5 rounded-2xl border border-amber-300 bg-amber-50 text-xs text-amber-900">
+              <div className="flex items-center gap-2">
+                <OverlapBadge overlaps={appointment.overlappingAppointments} />
+                <span className="font-semibold">Este horário tem mais de uma consulta</span>
+              </div>
+              <ul className="list-disc pl-5">
+                {(appointment.overlappingAppointments ?? []).map((o) => <li key={o.id}>{describeOverlap(o, true)}</li>)}
+              </ul>
+              {appointment.meetingType === 'VIDEO_CALL' && (
+                <p>Cada consulta tem a sua sala: não será possível estar nas duas ao mesmo tempo.</p>
+              )}
+            </div>
+          )}
 
           {(priceLabel || appointment.recurrenceRuleId) && (
             <div className="flex flex-wrap items-center gap-2">

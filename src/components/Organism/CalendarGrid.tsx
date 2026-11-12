@@ -1,5 +1,6 @@
 'use client';
 
+import { OverlapBadge } from '@/components/Atoms/OverlapBadge';
 import type { AppointmentDTO, VirtualOccurrence } from '@/types/appointment';
 import { generateMonthGrid, WEEK_DAYS, isSameDay } from '@/lib/calendar';
 import { RECURRENCE_FREQUENCY_LABELS } from '@/lib/recurrence';
@@ -124,18 +125,14 @@ export function CalendarGrid({
                     >
                       <span className="font-bold flex-shrink-0">{time}</span>
                       <span className="truncate">{otherPerson?.fullName || 'Consulta'}</span>
+                      {isPsychologist && app.hasOverlap && <OverlapBadge overlaps={app.overlappingAppointments} compact />}
                     </button>
                   );
                 })}
 
-                {cell.appointments.length > 2 && (
-                  <span className="text-[10px] font-semibold text-slate-500 pl-1">
-                    +{cell.appointments.length - 2} mais
-                  </span>
-                )}
-
-                {cell.appointments.length === 0 &&
-                  cellVirtualOccurrences.slice(0, 2).map((occurrence, i) => {
+                {/* Ocorrências previstas aparecem mesmo com consulta real no dia: uma série sobreposta
+                    nunca fica escondida atrás da outra consulta (ADR 019). */}
+                {cellVirtualOccurrences.slice(0, Math.max(1, 3 - Math.min(cell.appointments.length, 2))).map((occurrence, i) => {
                     const time = new Date(occurrence.startDateTime).toLocaleTimeString('pt-BR', {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -149,15 +146,23 @@ export function CalendarGrid({
                       >
                         <span className="font-bold flex-shrink-0">{time}</span>
                         <span className="truncate">Série {RECURRENCE_FREQUENCY_LABELS[occurrence.frequency]}</span>
+                        {isPsychologist && occurrence.hasOverlap && <OverlapBadge compact />}
                       </div>
                     );
                   })}
+
+                {(() => {
+                  const hidden = Math.max(0, cell.appointments.length - 2)
+                    + Math.max(0, cellVirtualOccurrences.length - Math.max(1, 3 - Math.min(cell.appointments.length, 2)));
+                  return hidden > 0 ? (
+                    <span className="text-[10px] font-semibold text-slate-500 pl-1">+{hidden} mais</span>
+                  ) : null;
+                })()}
               </div>
 
               {hasAppointments && (
                 <div className="flex items-center justify-center gap-1 mt-1 sm:hidden">
-                  {cell.appointments.length === 0 &&
-                    cellVirtualOccurrences.slice(0, 3).map((_, i) => (
+                  {cellVirtualOccurrences.slice(0, 3).map((_, i) => (
                       <span key={`virtual-${i}`} className="w-1.5 h-1.5 rounded-full bg-violet-300" />
                     ))}
                   {cell.appointments.slice(0, 3).map((app, i) => (

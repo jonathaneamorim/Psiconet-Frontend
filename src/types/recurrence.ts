@@ -53,4 +53,6 @@ export interface RecurrenceRuleCreateDTO {
   location?: LocationDTO;
   price?: number;
   adjustForWeekend: boolean;
+  /** Confirma a série mesmo com a 1ª ocorrência sobre outra consulta (sem isso: 409 SCHEDULE_OVERLAP). */
+  acknowledgeOverlap?: boolean;
 }

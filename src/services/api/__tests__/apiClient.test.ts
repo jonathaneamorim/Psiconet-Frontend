@@ -109,6 +109,16 @@ describe('apiClient', () => {
     spy.mockRestore();
   });
 
+  it('409 SCHEDULE_OVERLAP repassa o código e a lista de conflitos (a tela trata, não é erro genérico)', async () => {
+    const conflicts = [{ id: 'apt-9', startDateTime: '2030-03-04T10:00:00', endDateTime: '2030-03-04T10:50:00', patientName: 'Bruno' }];
+    mockFetchOnce(JSON.stringify({ status: 409, code: 'SCHEDULE_OVERLAP', message: 'Você já tem consulta neste horário.', conflicts }), { status: 409 });
+    const result = await apiClient.post('/appointments', {});
+    expect(result.status).toBe(409);
+    expect(result.code).toBe('SCHEDULE_OVERLAP');
+    expect(result.conflicts).toEqual(conflicts);
+    expect(result.error).toBe('Você já tem consulta neste horário.');
+  });
+
   it('repassa o IP do navegador e o token', async () => {
     const fetchMock = mockFetchOnce('', { status: 200 });
     await apiClient.get('/notifications');

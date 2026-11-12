@@ -8,6 +8,7 @@ import type {
   AppointmentCancelDTO,
   AppointmentCancelScope,
   AppointmentStatsDTO,
+  OverlapSummary,
 } from '@/types/appointment';
 import type { PaginatedResponse } from '@/types/connection';
 
@@ -42,10 +43,10 @@ export async function getAppointmentStatsAction(
 /* Cria um novo agendamento (Apenas Psicólogo) */
 export async function createAppointmentAction(
   dto: AppointmentCreateDTO
-): Promise<{ data?: AppointmentDTO; error?: string }> {
+): Promise<CreateAppointmentResult> {
   const result = await apiClient.post<AppointmentDTO>('/appointments', dto);
   if (result.error) {
-    return { error: result.error };
+    return { error: result.error, code: result.code, conflicts: result.conflicts as OverlapSummary[] | undefined };
   }
 
   revalidatePath('/psychologist/appointments');
@@ -72,4 +73,24 @@ export async function cancelAppointmentAction(
   revalidatePath('/psychologist/dashboard');
   revalidatePath('/patient/dashboard');
   return { data: result.data };
+}
+
+/** Resultado de criação: `conflicts` vem junto do código SCHEDULE_OVERLAP (horário ocupado, sem confirmação). */
+export interface CreateAppointmentResult {
+  data?: AppointmentDTO;
+  error?: string;
+  code?: string;
+  conflicts?: OverlapSummary[];
+}
+
+/* Pré-checagem de sobreposição para o aviso em tempo real do formulário (só psicólogo, só a própria agenda) */
+export async function checkAppointmentOverlapsAction(
+  startDateTime: string,
+  endDateTime: string,
+  excludeId?: string
+): Promise<{ data?: OverlapSummary[]; error?: string }> {
+  const params = new URLSearchParams({ start: startDateTime, end: endDateTime });
+  if (excludeId) params.set('excludeId', excludeId);
+  const result = await apiClient.get<OverlapSummary[]>(`/appointments/overlaps?${params}`, { background: true });
+  return result.error ? { error: result.error } : { data: result.data ?? [] };
 }

@@ -11,6 +11,7 @@ import type {
   CalendarViewMode,
 } from '@/types/appointment';
 import type { RecurrenceRuleCreateDTO } from '@/types/recurrence';
+import { SCHEDULE_OVERLAP_CODE, type CreateOutcome } from '@/types/appointment';
 import type { PaginatedResponse } from '@/types/connection';
 import {
   getMyAppointmentsAction,
@@ -18,7 +19,7 @@ import {
   cancelAppointmentAction,
   getAppointmentStatsAction,
 } from '@/actions/appointments';
-import { createRecurrenceRuleAction, previewRecurrenceRuleAction } from '@/actions/recurrenceRules';
+import { createRecurrenceRuleAction, previewRecurrenceOverlapsAction, previewRecurrenceRuleAction } from '@/actions/recurrenceRules';
 import { isSameDay } from '@/lib/calendar';
 import toast from 'react-hot-toast';
 
@@ -153,13 +154,19 @@ export function useAppointments({ initialData, perspective }: UseAppointmentsOpt
 
     Promise.all(
       activeRecurrenceRuleIds.map(async (ruleId) => {
-        const res = await previewRecurrenceRuleAction(ruleId, from, to);
+        const [res, overlapRes] = await Promise.all([
+          previewRecurrenceRuleAction(ruleId, from, to),
+          // Só o psicólogo vê quais datas futuras da série coincidem com outra consulta (ADR 019).
+          perspective === 'psychologist' ? previewRecurrenceOverlapsAction(ruleId, from, to) : Promise.resolve(undefined),
+        ]);
         const frequency = appointments.find((a) => a.recurrenceRuleId === ruleId)?.recurrenceFrequency;
         if (!res.data || !frequency) return [];
+        const overlapping = new Set((overlapRes?.data ?? []).map((o) => new Date(o.startDateTime).getTime()));
         return res.data.map<VirtualOccurrence>((startDateTime) => ({
           recurrenceRuleId: ruleId,
           frequency,
           startDateTime,
+          ...(overlapping.has(new Date(startDateTime).getTime()) ? { hasOverlap: true } : {}),
         }));
       })
     ).then((results) => {
@@ -236,15 +243,19 @@ export function useAppointments({ initialData, perspective }: UseAppointmentsOpt
     setDetailsModalAppointment(null);
   };
 
-  const handleCreateAppointment = async (dto: AppointmentCreateDTO) => {
+  const handleCreateAppointment = async (dto: AppointmentCreateDTO): Promise<CreateOutcome> => {
     setIsMutating(true);
     try {
       const res = await createAppointmentAction(dto);
+      // Horário ocupado (ADR 019): não é erro — o modal pede confirmação e reenvia.
+      if (res.code === SCHEDULE_OVERLAP_CODE && res.conflicts) {
+        return { overlapConflicts: res.conflicts };
+      }
       if (res.error) {
         toast.error(res.error);
         return false;
       }
-      toast.success('Consulta agendada com sucesso!');
+      toast.success(res.data?.hasOverlap ? 'Consulta agendada (horário sobreposto).' : 'Consulta agendada com sucesso!');
       if (res.data) {
         setAppointments((prev) => [...prev, res.data!].sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime()));
       } else {
@@ -259,10 +270,13 @@ export function useAppointments({ initialData, perspective }: UseAppointmentsOpt
     }
   };
 
-  const handleCreateRecurrence = async (treatmentLinkId: string, dto: RecurrenceRuleCreateDTO) => {
+  const handleCreateRecurrence = async (treatmentLinkId: string, dto: RecurrenceRuleCreateDTO): Promise<CreateOutcome> => {
     setIsMutating(true);
     try {
       const res = await createRecurrenceRuleAction(treatmentLinkId, dto);
+      if (res.code === SCHEDULE_OVERLAP_CODE && res.conflicts) {
+        return { overlapConflicts: res.conflicts };
+      }
       if (res.error) {
         toast.error(res.error);
         return false;
