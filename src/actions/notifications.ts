@@ -5,13 +5,13 @@ import { revalidatePath } from 'next/cache';
 import type { NotificationDTO, NotificationPreferenceDTO, UnreadCount } from '@/types/notification';
 
 export async function getUnreadCountAction(): Promise<number> {
-  const result = await apiClient.get<UnreadCount>('/notifications/unread-count');
+  const result = await apiClient.get<UnreadCount>('/notifications/unread-count', { background: true });
   if (result.error || result.data === undefined || result.data === null) return 0;
   return typeof result.data === 'number' ? result.data : 0;
 }
 
 export async function getNotificationsAction(): Promise<NotificationDTO[]> {
-  const result = await apiClient.get<NotificationDTO[]>('/notifications');
+  const result = await apiClient.get<NotificationDTO[]>('/notifications', { background: true });
   if (result.error || !result.data) return [];
   return Array.isArray(result.data) ? result.data : [];
 }
@@ -20,12 +20,10 @@ export async function markNotificationAsReadAction(id: string): Promise<void> {
   await apiClient.patch(`/notifications/${id}/read`);
 }
 
-/*
- * O backend não expõe um endpoint de bulk-read (`PATCH /notifications/read-all` não existe,
- * apenas `PATCH /notifications/{id}/read`). Marca cada notificação não lida individualmente.
- */
-export async function markAllNotificationsAsReadAction(unreadIds: string[]): Promise<void> {
-  await Promise.allSettled(unreadIds.map((id) => apiClient.patch(`/notifications/${id}/read`)));
+/* Marca todas as notificações do usuário como lidas em uma única chamada (PATCH /notifications/read-all) */
+export async function markAllNotificationsAsReadAction(): Promise<void> {
+  const result = await apiClient.patch('/notifications/read-all');
+  if (result.error) throw new Error(result.error);
 }
 
 export async function getNotificationPreferencesAction(): Promise<{ data?: NotificationPreferenceDTO; error?: string }> {

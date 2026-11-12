@@ -35,7 +35,7 @@ describe('LateralMenu Component', () => {
         expect(screen.getByTestId('lateral-menu')).toBeInTheDocument();
         expect(screen.getByText('Dashboard')).toBeInTheDocument();
         expect(screen.getByText('Agenda de Consultas')).toBeInTheDocument();
-        expect(screen.getByText('Pacientes')).toBeInTheDocument();
+        expect(screen.getByText('Buscar Pacientes')).toBeInTheDocument();
         expect(screen.getByText('Sair')).toBeInTheDocument();
 
         // Check exact href for dashboard and appointments

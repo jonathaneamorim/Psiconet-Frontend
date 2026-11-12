@@ -22,6 +22,14 @@ export async function getMyAppointmentsAction(
   return apiClient.get<PaginatedResponse<AppointmentDTO>>(`/appointments?${params}`);
 }
 
+/* Detalhe de uma consulta (só psicólogo ou paciente do vínculo; demais recebem 404) */
+export async function getAppointmentAction(
+  id: string
+): Promise<{ data?: AppointmentDTO; error?: string; status?: number }> {
+  const result = await apiClient.get<AppointmentDTO>(`/appointments/${encodeURIComponent(id)}`);
+  return result.error ? { error: result.error, status: result.status } : { data: result.data };
+}
+
 /* Contagem por status das consultas do mês exibido no calendário */
 export async function getAppointmentStatsAction(
   year: number,

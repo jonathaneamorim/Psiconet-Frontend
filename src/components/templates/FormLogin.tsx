@@ -8,7 +8,16 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export function FormLogin() {
+interface FormLoginProps {
+    /** Vindo de /login?cadastro=sucesso — exibe confirmação do cadastro recém-concluído */
+    registered?: boolean;
+    /** E-mail recém-cadastrado, para pré-preencher o campo */
+    initialEmail?: string;
+    /** Aviso de sessão encerrada: "expirada" (servidor recusou a sessão) ou "todos" (saiu de todos os dispositivos) */
+    sessionNotice?: 'expired' | 'all-devices' | null;
+}
+
+export function FormLogin({ registered = false, initialEmail = "", sessionNotice = null }: FormLoginProps) {
     const router = useRouter();
     const [view, setView] = useState<'login' | 'recover'>('login');
     const [errorMessage, setErrorMessage] = useState("");
@@ -28,13 +37,17 @@ export function FormLogin() {
 
         const result = await loginAction(formData, keepLoggedIn);
 
-        if (result?.error) {
-            setErrorMessage(result.error);
-            toast.error(result.error, { id: toastId });
-        } else if (result?.success && result.redirectTo) {
-            toast.success("Usuário logado!", { id: toastId });
+        if (result?.success && result.redirectTo) {
+            toast.success("Login realizado!", { id: toastId });
+            // Botão segue desabilitado até a navegação concluir (evita duplo envio).
             router.push(result.redirectTo);
+            router.refresh();
+            return;
         }
+
+        const message = result?.error ?? "Não foi possível fazer login.";
+        setErrorMessage(message);
+        toast.error(message, { id: toastId });
         setLoading(false);
     }
 
@@ -79,7 +92,7 @@ export function FormLogin() {
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Verifique seu e-mail</h2>
                         <p className="text-sm text-gray-500 max-w-sm">
-                            Se <strong>{recoverEmail}</strong> estiver cadastrado, você receberá um e-mail com um link para redefinir sua senha. O link expira em 10 minutos.
+                            Se <strong>{recoverEmail}</strong> estiver cadastrado, você receberá um e-mail com um link para redefinir sua senha. O link expira em 30 minutos.
                         </p>
                     </div>
 
@@ -108,7 +121,7 @@ export function FormLogin() {
                 <div className="flex flex-col gap-2">
                     <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Recuperar Senha</h2>
                     <p className="text-sm text-gray-500">
-                        Digite seu e-mail para receber um link de redefinição de senha (válido por 10 minutos).
+                        Digite seu e-mail para receber um link de redefinição de senha (válido por 30 minutos).
                     </p>
                 </div>
 
@@ -146,19 +159,46 @@ export function FormLogin() {
                 <p className="text-slate-500 text-lg">Faça login para continuar sua jornada.</p>
             </div>
 
-            <form onSubmit={handleLogin} className="flex flex-col gap-5 mt-4">
+            {registered && (
+                <div role="status" className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Conta criada com sucesso! Entre com seu e-mail e senha para começar.</span>
+                </div>
+            )}
+
+            {sessionNotice && (
+                <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {sessionNotice === 'expired'
+                        ? 'Sua sessão expirou ou foi encerrada. Entre novamente para continuar.'
+                        : 'Você saiu da sua conta em todos os dispositivos.'}
+                </div>
+            )}
+
+            <form onSubmit={handleLogin} className="flex flex-col gap-5 mt-4" aria-busy={loading}>
+                {errorMessage && (
+                    <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {errorMessage}
+                    </div>
+                )}
                 <div className="flex flex-col gap-3">
-                    <InputLabel fieldName="Email" name="email" inputType="email" />
-                    <InputLabel fieldName="Senha" name="password" inputType="password" />
+                    <InputLabel fieldName="Email" name="email" inputType="email" autoComplete="email" defaultValue={initialEmail} required />
+                    <InputLabel fieldName="Senha" name="password" inputType="password" autoComplete="current-password" required />
                 </div>
 
                 <div className="flex flex-col text-center w-full gap-4">
-                    <div className="flex gap-2 justify-center">
-                        <input className="w-4" type="checkbox" name="keeploggedin" id="keeploggedin" />
-                        <label htmlFor="keeploggedin">Manter login</label>
+                    <div className="flex flex-col items-center gap-1">
+                        <div className="flex gap-2 justify-center items-center">
+                            <input className="w-4 h-4" type="checkbox" name="keeploggedin" id="keeploggedin" aria-describedby="keeploggedin-hint" />
+                            <label htmlFor="keeploggedin">Manter conectado neste dispositivo</label>
+                        </div>
+                        <p id="keeploggedin-hint" className="text-xs text-slate-500">
+                            Não use em computadores compartilhados. Sem esta opção, a sessão termina ao fechar o navegador.
+                        </p>
                     </div>
 
-                    <button type="button" onClick={() => setView('recover')} className="text-sm italic cursor-pointer hover:text-[var(--primary)] transition-colors">
+                    <button type="button" onClick={() => { setErrorMessage(''); setView('recover'); }} className="text-sm italic cursor-pointer hover:text-[var(--primary)] transition-colors">
                         Esqueceu a senha?
                     </button>
                 </div>

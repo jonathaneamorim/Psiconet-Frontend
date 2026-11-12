@@ -10,6 +10,9 @@ import {
   Calendar,
   Link2,
   Wallet,
+  LifeBuoy,
+  Megaphone,
+  FileLock2,
   ChevronRight,
   Filter,
 } from 'lucide-react';
@@ -18,24 +21,11 @@ import {
   markNotificationAsReadAction,
   markAllNotificationsAsReadAction,
 } from '@/actions/notifications';
-import type { NotificationDTO, NotificationReferenceType } from '@/types/notification';
+import type { NotificationDTO } from '@/types/notification';
 import { RoleEnum } from '@/enums/RoleEnum';
+import { resolveNotificationRoute } from '@/lib/notificationRoutes';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function resolveRoute(
-  referenceType: NotificationReferenceType,
-  role: RoleEnum | null,
-): string | null {
-  if (!role || (role !== RoleEnum.PATIENT && role !== RoleEnum.PSYCHOLOGIST)) return null;
-
-  const routes: Record<string, string> = {
-    APPOINTMENT: `/${role}/appointments`,
-    CONNECTION: `/${role}/connections`,
-    PAYMENT: `/${role}/payments`,
-  };
-  return routes[referenceType] ?? null;
-}
 
 function formatRelativeTime(isoString: string): string {
   const diffMs = Date.now() - new Date(isoString).getTime();
@@ -61,7 +51,7 @@ function formatFullDate(isoString: string): string {
   }).format(new Date(isoString));
 }
 
-type FilterType = 'ALL' | 'UNREAD' | 'APPOINTMENT' | 'CONNECTION' | 'PAYMENT';
+type FilterType = 'ALL' | 'UNREAD' | 'APPOINTMENT' | 'CONNECTION' | 'PAYMENT' | 'TICKET' | 'ANNOUNCEMENT';
 
 const FILTER_LABELS: Record<FilterType, string> = {
   ALL: 'Todas',
@@ -69,18 +59,26 @@ const FILTER_LABELS: Record<FilterType, string> = {
   APPOINTMENT: 'Consultas',
   CONNECTION: 'Conexões',
   PAYMENT: 'Cobranças',
+  TICKET: 'Suporte',
+  ANNOUNCEMENT: 'Comunicados',
 };
 
 const TYPE_ICON: Record<string, React.ReactNode> = {
   APPOINTMENT: <Calendar size={16} />,
   CONNECTION: <Link2 size={16} />,
   PAYMENT: <Wallet size={16} />,
+  TICKET: <LifeBuoy size={16} />,
+  ANNOUNCEMENT: <Megaphone size={16} />,
+  MEDICAL_RECORD: <FileLock2 size={16} />,
 };
 
 const TYPE_COLOR: Record<string, string> = {
   APPOINTMENT: 'bg-violet-100 text-violet-600',
   CONNECTION: 'bg-blue-100 text-blue-600',
   PAYMENT: 'bg-emerald-100 text-emerald-600',
+  TICKET: 'bg-amber-100 text-amber-700',
+  ANNOUNCEMENT: 'bg-rose-100 text-rose-600',
+  MEDICAL_RECORD: 'bg-indigo-100 text-indigo-600',
 };
 
 // ─── NotificationCard ──────────────────────────────────────────────────────────
@@ -95,7 +93,7 @@ function NotificationCard({ notification, role, onRead }: NotificationCardProps)
   const { id, title, message, isRead, referenceType, createdAt } = notification;
   const router = useRouter();
 
-  const route = resolveRoute(referenceType, role);
+  const route = resolveNotificationRoute(notification, role);
 
   function handleClick() {
     if (!isRead) onRead(id);
@@ -190,13 +188,13 @@ export function NotificationsPageView({ initialNotifications, role }: Props) {
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
-    if (unreadIds.length === 0) return;
+    const hasAnyUnread = notifications.some((n) => !n.isRead);
+    if (!hasAnyUnread) return;
 
     startTransition(async () => {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       try {
-        await markAllNotificationsAsReadAction(unreadIds);
+        await markAllNotificationsAsReadAction();
       } catch {
         await reload();
       }
@@ -206,10 +204,8 @@ export function NotificationsPageView({ initialNotifications, role }: Props) {
   // Filtros
   const filtered = notifications.filter((n) => {
     if (filter === 'UNREAD') return !n.isRead;
-    if (filter === 'APPOINTMENT') return n.referenceType === 'APPOINTMENT';
-    if (filter === 'CONNECTION') return n.referenceType === 'CONNECTION';
-    if (filter === 'PAYMENT') return n.referenceType === 'PAYMENT';
-    return true;
+    if (filter === 'ALL') return true;
+    return n.referenceType === filter;
   });
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -261,10 +257,7 @@ export function NotificationsPageView({ initialNotifications, role }: Props) {
             const count =
               f === 'ALL' ? notifications.length
               : f === 'UNREAD' ? notifications.filter((n) => !n.isRead).length
-              : f === 'APPOINTMENT' ? notifications.filter((n) => n.referenceType === 'APPOINTMENT').length
-              : f === 'CONNECTION' ? notifications.filter((n) => n.referenceType === 'CONNECTION').length
-              : f === 'PAYMENT' ? notifications.filter((n) => n.referenceType === 'PAYMENT').length
-              : 0;
+              : notifications.filter((n) => n.referenceType === f).length;
 
             return (
               <button

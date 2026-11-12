@@ -9,7 +9,16 @@ interface Props {
   initial: NotificationPreferenceDTO;
 }
 
-const OPTIONS: { key: keyof NotificationPreferenceDTO; label: string; description: string }[] = [
+type ToggleKey = 'appointmentEnabled' | 'connectionEnabled' | 'paymentEnabled';
+
+// Categorias obrigatórias (decisão do backend — ADR 005): sempre ativas, sem toggle.
+const MANDATORY: { label: string; description: string }[] = [
+  { label: 'Suporte', description: 'Respostas e finalização dos seus chamados.' },
+  { label: 'Comunicados', description: 'Avisos oficiais da administração da Psiconet.' },
+  { label: 'Prontuário', description: 'Solicitações e decisões de acesso a prontuário.' },
+];
+
+const OPTIONS: { key: ToggleKey; label: string; description: string }[] = [
   {
     key: 'appointmentEnabled',
     label: 'Agendamentos',
@@ -31,7 +40,7 @@ export function NotificationPreferencesForm({ initial }: Props) {
   const [preferences, setPreferences] = useState(initial);
   const [savingKey, setSavingKey] = useState<string | null>(null);
 
-  const handleToggle = async (key: keyof NotificationPreferenceDTO) => {
+  const handleToggle = async (key: ToggleKey) => {
     const next = { ...preferences, [key]: !preferences[key] };
     setPreferences(next);
     setSavingKey(key);
@@ -79,6 +88,20 @@ export function NotificationPreferencesForm({ initial }: Props) {
                   }`}
               />
             </button>
+          </div>
+        ))}
+        {MANDATORY.map((item) => (
+          <div
+            key={item.label}
+            className="flex items-center justify-between gap-4 p-3 rounded-xl border border-slate-200 bg-white"
+          >
+            <div>
+              <p className="text-xs font-semibold text-slate-800">{item.label}</p>
+              <p className="text-[11px] text-slate-500">{item.description}</p>
+            </div>
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-1 flex-shrink-0">
+              Sempre ativa
+            </span>
           </div>
         ))}
       </div>

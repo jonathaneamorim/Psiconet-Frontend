@@ -42,6 +42,9 @@ export interface AppointmentDTO {
   patient: PersonSummaryDTO;
   psychologist: PersonSummaryDTO;
   createdAt: string;
+  /** Janela de entrada na sala integrada (só VIDEO_CALL + IN_APP), calculada pelo backend. */
+  joinOpensAt?: string;
+  joinClosesAt?: string;
 }
 
 export interface AppointmentCreateDTO {
@@ -51,6 +54,8 @@ export interface AppointmentCreateDTO {
   title?: string;
   description?: string;
   meetingType: MeetingType;
+  /** Só para VIDEO_CALL. IN_APP = Sala Psiconet (sem link); EXTERNAL_LINK = Meet/Zoom (link obrigatório). */
+  meetingProvider?: MeetingProvider;
   meetingLink?: string;
   location?: LocationDTO;
   price?: number;

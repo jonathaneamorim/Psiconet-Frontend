@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { COOKIE_TOKEN } from '@/constants/cookies';
-import { ACCESS_TIME_MINUTES, KEEP_LOGGED_TIME_DAYS } from '@/constants/auth';
+import { buildSessionCookies, SESSION_COOKIE_NAMES } from '@/lib/sessionCookies';
+import type { AuthResponse } from '@/types/auth';
 import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
 // opções padrão de segurança
@@ -38,17 +39,16 @@ export const cookieService = {
     return this.get(COOKIE_TOKEN);
   },
 
-  async setAuthToken(token: string, remember: boolean = false): Promise<void> {
-    const maxAgeSeconds = remember
-      ? 24 * 60 * 60 * KEEP_LOGGED_TIME_DAYS
-      : 60 * ACCESS_TIME_MINUTES;
-
-    await this.set(COOKIE_TOKEN, token, {
-      maxAge: maxAgeSeconds,
-    });
+  /** Grava token de acesso + refresh com as expirações devolvidas pela API (ADR 014). */
+  async setSession(auth: AuthResponse): Promise<void> {
+    const cookieStore = await cookies();
+    for (const c of buildSessionCookies(auth)) {
+      cookieStore.set(c.name, c.value, c.options);
+    }
   },
 
   async clearAuth(): Promise<void> {
-    await this.remove(COOKIE_TOKEN);
+    const cookieStore = await cookies();
+    for (const name of SESSION_COOKIE_NAMES) cookieStore.delete(name);
   },
 };
