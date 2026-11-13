@@ -61,7 +61,7 @@ config/         routes.ts (ROUTES), navigation.tsx (NAV_ITEMS por role)
 lib/            jwt (decodifica + expiração; só para navegação), password (espelho da política, ≤ 72 bytes), notificationRoutes,
                 datetime, cpf, calendar, currency, recurrence, sessionCookies + sessionRefresh (sessão, ADR 014),
                 cookieConsent (categorias e cookie de consentimento), markdown (parser seguro), age
-services/       api/apiClient.ts, cookieService.ts, legalService.ts (documentos/versões públicos, cache 5 min)
+services/       api/apiClient.ts, cookieService.ts, legalService.ts (documentos/versões públicos, sem cache: a versão aceita tem de ser a vigente)
 types/          admin, auth, ticket, medicalRecord, notification, appointment, payment, connection, profile, recurrence
 proxy.ts        guarda de rotas por role (Next 16 "proxy", antigo middleware)
 ```

@@ -2,14 +2,15 @@ import { API_URL } from '@/constants/api';
 import type { LegalDocument, LegalSlug, LegalVersions } from '@/types/legal';
 
 /*
- * Leitura PÚBLICA dos documentos legais e versões (sem token). Cache curto do Next (5 min), igual
- * ao Cache-Control da API: uma nova versão aparece em no máximo alguns minutos após o deploy.
+ * Leitura PÚBLICA dos documentos legais e versões (sem token). SEM cache do Next de propósito:
+ * a versão lida aqui é a que o usuário aceita no cadastro (o backend recusa versão desatualizada
+ * com 409 LEGAL_VERSION_OUTDATED) e a que o banner de cookies grava. Com `revalidate`, o Data Cache
+ * podia servir uma versão antiga indefinidamente (inclusive após `router.refresh()`), e o cadastro
+ * ficava preso em "os documentos foram atualizados" mesmo com o aceite marcado.
  */
-const REVALIDATE_SECONDS = 300;
-
 async function getPublic<T>(path: string): Promise<T | null> {
   try {
-    const response = await fetch(`${API_URL}${path}`, { next: { revalidate: REVALIDATE_SECONDS } });
+    const response = await fetch(`${API_URL}${path}`, { cache: 'no-store' });
     if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
