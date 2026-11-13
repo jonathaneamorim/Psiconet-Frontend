@@ -7,6 +7,9 @@ import { getVideoConfigAction } from '@/actions/video';
 jest.mock('@/actions/connections', () => ({ getActiveConnectionsAction: jest.fn() }));
 jest.mock('@/actions/profile', () => ({ getMyPsychologistProfileAction: jest.fn() }));
 jest.mock('@/actions/video', () => ({ getVideoConfigAction: jest.fn() }));
+// Pré-checagem de sobreposição (ADR 019): sem conflitos nestes cenários
+jest.mock('@/actions/appointments', () => ({ checkAppointmentOverlapsAction: jest.fn().mockResolvedValue({ data: [] }) }));
+jest.mock('@/actions/recurrenceRules', () => ({ draftRecurrenceOverlapsAction: jest.fn().mockResolvedValue({ data: [] }) }));
 
 const patient = { user: { id: 'pat-1', fullName: 'Ana Paciente', treatmentLinkId: 'link-1', defaultPrice: 150 } };
 

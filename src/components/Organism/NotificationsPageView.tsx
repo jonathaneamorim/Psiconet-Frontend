@@ -3,6 +3,7 @@
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  AlertTriangle,
   Bell,
   BellOff,
   CheckCheck,
@@ -100,8 +101,9 @@ function NotificationCard({ notification, role, onRead }: NotificationCardProps)
     if (route) router.push(route);
   }
 
-  const iconColor = TYPE_COLOR[referenceType] || 'bg-slate-100 text-slate-500';
-  const icon = TYPE_ICON[referenceType] || <Bell size={16} />;
+  const isOverlap = notification.type === 'SCHEDULE_OVERLAP';
+  const iconColor = isOverlap ? 'bg-amber-100 text-amber-700' : TYPE_COLOR[referenceType] || 'bg-slate-100 text-slate-500';
+  const icon = isOverlap ? <AlertTriangle size={16} aria-label="Sobreposição de horário" /> : TYPE_ICON[referenceType] || <Bell size={16} />;
 
   return (
     <button

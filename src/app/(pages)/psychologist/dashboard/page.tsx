@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OverlapBadge } from '@/components/Atoms/OverlapBadge';
 import { getMeProfileAction } from '@/actions/profile';
 import { getMyAppointmentsAction } from '@/actions/appointments';
 import { getActiveConnectionsAction } from '@/actions/connections';
@@ -196,6 +197,7 @@ export default async function DashboardPsicologo() {
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-center">
+                      {app.hasOverlap && <OverlapBadge overlaps={app.overlappingAppointments} />}
                       <MeetingTypeBadge type={app.meetingType} provider={app.meetingProvider} size="sm" />
                       <AppointmentStatusBadge status={app.status} size="sm" />
                       <JoinCallButton appointment={app} />

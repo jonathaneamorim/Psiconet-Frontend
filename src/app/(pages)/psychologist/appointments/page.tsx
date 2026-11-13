@@ -11,6 +11,7 @@ export default async function PsychologistAppointmentsPage(props: {
 }) {
   const searchParams = await props.searchParams;
   const preselectedPatientId = typeof searchParams.patientId === 'string' ? searchParams.patientId : undefined;
+  const initialAppointmentId = typeof searchParams.consulta === 'string' ? searchParams.consulta : undefined;
 
   const { data } = await getMyAppointmentsAction(0, 200, 'startDateTime,asc');
 
@@ -20,6 +21,7 @@ export default async function PsychologistAppointmentsPage(props: {
         <PsychologistAgendaView
           initialData={data}
           preselectedPatientId={preselectedPatientId}
+          initialAppointmentId={initialAppointmentId}
         />
       </div>
     </div>

@@ -26,9 +26,10 @@ export async function getConnectionStatusAction(targetUserId: string): Promise<{
   status: 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'CONNECTED';
   connectionId?: string;
 }> {
-  const [activeResult, pendingResult] = await Promise.all([
+  const [activeResult, pendingResult, sentResult] = await Promise.all([
     getActiveConnectionsAction(0, 100),
     getPendingRequestsAction(),
+    getSentRequestsAction(),
   ]);
 
   if (activeResult.data) {
@@ -39,9 +40,11 @@ export async function getConnectionStatusAction(targetUserId: string): Promise<{
   if (pendingResult.data) {
     for (const req of pendingResult.data.content) {
       if (req.sender.id === targetUserId) return { status: 'PENDING_RECEIVED', connectionId: req.id };
-      if (req.receiver.id === targetUserId) return { status: 'PENDING_SENT', connectionId: req.id };
     }
   }
+
+  const sent = sentResult.data?.content.find((req) => req.receiver.id === targetUserId);
+  if (sent) return { status: 'PENDING_SENT', connectionId: sent.id };
 
   return { status: 'NONE' };
 }
@@ -53,8 +56,20 @@ export async function getPendingRequestsAction(
   data?: PaginatedResponse<ConnectionRequest>;
   error?: string;
 }> {
-  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'requestedAt,desc' });
   return apiClient.get<PaginatedResponse<ConnectionRequest>>(`/connections/pending?${params}`);
+}
+
+/* Solicitações que o usuário enviou e ainda aguardam resposta (GET /connections/sent) */
+export async function getSentRequestsAction(
+  page = 0,
+  size = 100
+): Promise<{
+  data?: PaginatedResponse<ConnectionRequest>;
+  error?: string;
+}> {
+  const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'requestedAt,desc' });
+  return apiClient.get<PaginatedResponse<ConnectionRequest>>(`/connections/sent?${params}`);
 }
 
 /* Envia uma solicitação de conexão para um usuário */

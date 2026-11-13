@@ -49,7 +49,7 @@ export default async function PsychologistProfilePage(props: { params: Promise<{
             {profile.description && (
               <div className="mt-8">
                 <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                  "{profile.description}"
+                  &ldquo;{profile.description}&rdquo;
                 </p>
               </div>
             )}

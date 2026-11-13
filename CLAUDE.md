@@ -1,8 +1,9 @@
 # Psiconet Frontend — Guia para agentes e desenvolvedores
 
 > Fonte oficial de verdade do frontend. Projeto irmão: **Psiconet-Backend** (Spring Boot) —
-> `../Psiconet-Backend/CLAUDE.md` (contrato de API, regras de negócio, ADRs 000–010 em `docs/decisoes/`).
+> `../Psiconet-Backend/CLAUDE.md` (contrato de API, regras de negócio, ADRs 000–019 em `docs/decisoes/`; backend em Spring Boot 4.1 / Java 25, ADR 018).
 > ADRs do frontend: `docs/decisoes/` (001 gráficos/Recharts, 002 editor/TipTap, 003 videochamada/LiveKit).
+> Segurança: `docs/seguranca/auditoria-2026-11-11.md` (e a matriz de autorização no backend).
 
 ## Produto
 Plataforma que conecta **pacientes** e **psicólogos** (busca, conexões, agenda, cobranças, notificações,
@@ -10,7 +11,7 @@ prontuário com anotações de sessão, suporte) e uma **área administrativa** 
 dashboard, chamados, comunicados). Este projeto é o cliente web; o backend é a autoridade de tudo.
 
 ## Stack
-Next.js 16 (App Router, Turbopack) · React 19.2 · TypeScript 5 · Tailwind 4 · Jest 30 + Testing Library ·
+Next.js 16.4 (App Router, Turbopack; ≥ 16.4.1 — versões anteriores têm CVEs críticas) · React 19.2 · TypeScript 5 · Tailwind 4 · Jest 30 + Testing Library ·
 react-hot-toast · nextjs-toploader · **Recharts 3** (dashboard admin) · **TipTap 3** (editor de anotações) · lucide-react ·
 **livekit-client 2.22 + @livekit/components-react 2.9** (Sala Psiconet, carregados só em `/call`).
 **Node.js 24.22.1** (`.nvmrc`); `engines` aceita só as versões corrigidas de cada linha: `^22.23.4 || ^24.22.1 || >=26.12.1`.
@@ -20,14 +21,14 @@ react-hot-toast · nextjs-toploader · **Recharts 3** (dashboard admin) · **Tip
 npm ci              # instala dependências
 npm run dev         # http://localhost:3000 (backend em NEXT_PUBLIC_API_URL, padrão :8080)
 npm run build       # build de produção (inclui checagem de tipos)
-npm test            # Jest + Testing Library (90+ testes)
+npm test            # Jest + Testing Library (150+ testes)
 npm run lint        # ESLint 9 + eslint-config-next (ESLint 10 ainda não é suportado pelos plugins)
 npx tsc --noEmit    # checagem de tipos isolada
 ```
 Variáveis (`.env.example`): `NEXT_PUBLIC_API_URL` (embutida no build; também entra na CSP), `COOKIE_TOKEN_NAME`,
 `ROLE_PREFIX`, `VIDEO_CSP_ORIGINS` (origens do provedor de vídeo liberadas em `connect-src`; lida no build/start). **Não há durações de sessão no front**: os cookies seguem as expirações devolvidas pela API (ADR 014 do backend).
-Lint: existem ~18 erros **pré-existentes** (principalmente `react-hooks/set-state-in-effect` em hooks antigos);
-código novo deve sair sem erros.
+Lint: **0 erros**. `react-hooks/set-state-in-effect` está como aviso (buscas de dados em `useEffect` de hooks antigos,
+migração pendente); código novo não deve gerar avisos novos. `npm audit --omit=dev` deve ficar zerado.
 
 ## Estrutura (`src/`)
 ```
@@ -57,10 +58,10 @@ components/     Atomic Design
   templates/    FormLogin, FormRegister, FormResetPassword, FormChangePassword, AcceptTermsForm
 contexts/       ConnectionContext, CookieConsentContext (useCookieConsent)
 config/         routes.ts (ROUTES), navigation.tsx (NAV_ITEMS por role)
-lib/            jwt (decodifica + expiração; só para navegação), password (espelho da política), notificationRoutes,
+lib/            jwt (decodifica + expiração; só para navegação), password (espelho da política, ≤ 72 bytes), notificationRoutes,
                 datetime, cpf, calendar, currency, recurrence, sessionCookies + sessionRefresh (sessão, ADR 014),
                 cookieConsent (categorias e cookie de consentimento), markdown (parser seguro), age
-services/       api/apiClient.ts, cookieService.ts, legalService.ts (documentos/versões públicos, cache 5 min)
+services/       api/apiClient.ts, cookieService.ts, legalService.ts (documentos/versões públicos, sem cache: a versão aceita tem de ser a vigente)
 types/          admin, auth, ticket, medicalRecord, notification, appointment, payment, connection, profile, recurrence
 proxy.ts        guarda de rotas por role (Next 16 "proxy", antigo middleware)
 ```
@@ -75,6 +76,10 @@ proxy.ts        guarda de rotas por role (Next 16 "proxy", antigo middleware)
   - corpo de sucesso vazio ou não-JSON não quebra (o texto puro do backend gerava o bug "conta já existe");
   - `fieldErrors` = `ErrorResponse.errors` → exibir no campo; `error` → toast;
   - **429** (`code: RATE_LIMITED`) → mensagem amigável com o tempo de espera (o backend envia `Retry-After`);
+  - 405/413/415/422/502/503/504 sem corpo JSON → mensagem própria (`HTTP_ERRORS`); sucesso sem corpo devolve `status`;
+  - recurso de outro usuário → **404** (anti-IDOR do backend), papel errado → **403**;
+  - **409 `SCHEDULE_OVERLAP`** traz `conflicts`: a tela pede confirmação (não é erro genérico — ver Agendamento);
+  - falha de rede → "Erro de conexão" + log no servidor (método, caminho, tipo — nunca token/corpo);
   - **401** em rota autenticada → `/login?sessao=expirada` (o proxy apaga os cookies e o login mostra o aviso);
   - **403 `PASSWORD_CHANGE_REQUIRED`** → `/change-password?obrigatoria=1`; **403 `CONSENT_REQUIRED`** → `/accept-terms`;
   - nenhum desses redirecionamentos acontece em chamadas `background: true` (polling do sino, navbar no layout);
@@ -135,6 +140,16 @@ espelhados em `TICKET_LIMITS`; o backend impõe (3 abertos, intervalo, duplicida
 - Conteúdo é JSON do editor; renderize **sempre** com `RichTextViewer` (nunca `dangerouslySetInnerHTML`).
 - Nada clínico em `localStorage`/`sessionStorage`/URL; páginas clínicas não devem ser cacheadas.
 
+## Agendamento — sobreposição de horário (ADR 019 do backend)
+- O psicólogo pode agendar no horário de outra consulta **só depois de avisado e de confirmar**:
+  `useOverlapCheck` (pré-checagem com debounce de 400 ms) → `OverlapWarning` (faixa âmbar, `role="status"`, não bloqueia) →
+  409 `SCHEDULE_OVERLAP` ⇒ `OverlapConfirmDialog` (`role="alertdialog"`, foco em "Voltar") ⇒ reenvio com `acknowledgeOverlap: true`.
+  Handlers de criação devolvem `CreateOutcome` (`{ overlapConflicts }` no 409). Série: rascunho verificado com reunião neutra.
+- Selo `OverlapBadge` (ícone + texto acessível) **só na visão do psicólogo** e só se `hasOverlap` (card, detalhes, painel,
+  calendário e ocorrências previstas da série). O backend nem envia esses campos ao paciente.
+- Calendário: consultas e ocorrências previstas do mesmo dia aparecem juntas — nada fica escondido atrás de outra.
+- Notificação `SCHEDULE_OVERLAP` → `/psychologist/appointments?consulta=<id>` (abre a consulta e seleciona o dia).
+
 ## Videochamada — Sala Psiconet (ADR 016 do backend, ADR 003 do front, `docs/videochamada/`)
 - **Agendamento:** `MeetingProviderSelector` no `CreateAppointmentModal` (único e recorrente) — "Sala Psiconet" é o padrão
   quando `getVideoConfigAction()` diz `enabled`; senão só "Link externo". Envia `meetingProvider`; link validado por
@@ -156,12 +171,15 @@ espelhados em `TICKET_LIMITS`; o backend impõe (3 abertos, intervalo, duplicida
 - `NotificationType` espelha o enum do backend, incluindo `VIDEO_SESSION_REMINDER`/`VIDEO_PARTICIPANT_JOINED` (clique ⇒ `/call/{id}`), `TICKET_REPLIED`, `TICKET_CLOSED`, `ADMIN_ANNOUNCEMENT`,
   `MEDICAL_RECORD_ACCESS_REQUESTED|GRANTED|DENIED` (obrigatórias, exibidas como "Sempre ativa" nas preferências).
 - Destino do clique centralizado em `lib/notificationRoutes.ts` (`referenceType` + `referenceId` + role).
+  `CONNECTION_REQUESTED` ⇒ `/{role}/connections?aba=recebidas#solicitacoes` (aceitar/recusar ali).
 - Polling do contador a cada 15 s; "marcar todas" usa `PATCH /notifications/read-all`.
 
 ## Sistema de Conexões
 
 Sistema social onde Pacientes e Psicólogos se conectam:
 - Listagem otimista: Uso de `ConnectionContext` para reagir em real-time a mudanças de status (Conectar, Remover, etc) sem reload.
+- **Solicitações pendentes** na página de conexões (`ConnectionRequestsPanel`, âncora `#solicitacoes`, `?aba=recebidas|enviadas`):
+  recebidas (`GET /connections/pending`: aceitar/recusar) e enviadas (`GET /connections/sent`: cancelar = `DELETE /connections/{id}`).
 - `useConnectionActions`: Hook encapsulador que abstrai as chamadas HTTP e controla toasts/loading.
 - As Server Actions de perfis rodam em paralelo para buscar os dados de perfil + checar o estado de conexão com o remetente atual (via Promise.all).
 - Cada conexão ativa carrega um `TreatmentLink` (`treatmentLinkId` + `defaultPrice` em `ConnectedUserDTO`). O psicólogo edita o preço padrão do vínculo direto no `ConnectionCard` (botão "Editar Preço" → `EditTreatmentPriceModal` → `updateTreatmentLinkPriceAction`), e esse valor pré-preenche o campo de preço ao criar um novo agendamento.

@@ -45,6 +45,38 @@ export interface AppointmentDTO {
   /** Janela de entrada na sala integrada (só VIDEO_CALL + IN_APP), calculada pelo backend. */
   joinOpensAt?: string;
   joinClosesAt?: string;
+  /**
+   * Sobreposição de horário (ADR 019 do backend), calculada a cada leitura. Só existe na visão do
+   * PSICÓLOGO dono; para o paciente o backend nem envia estes campos.
+   */
+  hasOverlap?: boolean;
+  overlappingAppointments?: OverlapSummary[];
+}
+
+/** Outra consulta no mesmo horário — com o nome do paciente, só para o psicólogo dono da agenda. */
+export interface OverlapSummary {
+  id: string;
+  startDateTime: string;
+  endDateTime: string;
+  title?: string;
+  patientName: string;
+}
+
+/** Ocorrência de série recorrente que coincide com outra consulta (preview de sobreposição). */
+export interface RecurrenceOccurrenceOverlap {
+  startDateTime: string;
+  endDateTime: string;
+  overlappingAppointments: OverlapSummary[];
+}
+
+/** Código do 409 quando o horário já está ocupado e o psicólogo ainda não confirmou. */
+export const SCHEDULE_OVERLAP_CODE = 'SCHEDULE_OVERLAP';
+
+/** Resultado de criar consulta/série na tela: sucesso, falha já avisada, ou horário ocupado a confirmar. */
+export type CreateOutcome = boolean | void | { overlapConflicts: OverlapSummary[] };
+
+export function isOverlapOutcome(outcome: CreateOutcome): outcome is { overlapConflicts: OverlapSummary[] } {
+  return typeof outcome === 'object' && outcome !== null && Array.isArray(outcome.overlapConflicts);
 }
 
 export interface AppointmentCreateDTO {
@@ -59,6 +91,8 @@ export interface AppointmentCreateDTO {
   meetingLink?: string;
   location?: LocationDTO;
   price?: number;
+  /** Confirma a criação mesmo com outra consulta no horário (sem isso: 409 SCHEDULE_OVERLAP). */
+  acknowledgeOverlap?: boolean;
 }
 
 export type AppointmentCancelScope = 'SINGLE' | 'THIS_AND_FOLLOWING' | 'ALL_SERIES';
@@ -81,6 +115,8 @@ export interface VirtualOccurrence {
   recurrenceRuleId: string;
   frequency: RecurrenceFrequency;
   startDateTime: string;
+  /** Psicólogo: a data coincide com outra consulta da agenda. */
+  hasOverlap?: boolean;
 }
 
 export type CalendarViewMode = 'month' | 'week' | 'day' | 'list';

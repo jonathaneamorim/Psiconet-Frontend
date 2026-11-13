@@ -136,10 +136,10 @@ export function PaymentsView({ initialData, perspective }: Props) {
                     )}
                   </p>
                   {payment.status === 'REJECTED' && payment.rejectionReason && (
-                    <p className="text-xs text-red-600 italic">Motivo da rejeição: "{payment.rejectionReason}"</p>
+                    <p className="text-xs text-red-600 italic">Motivo da rejeição: &ldquo;{payment.rejectionReason}&rdquo;</p>
                   )}
                   {payment.status === 'DISPUTED' && payment.disputeMessage && (
-                    <p className="text-xs text-violet-600 italic">Contestação: "{payment.disputeMessage}"</p>
+                    <p className="text-xs text-violet-600 italic">Contestação: &ldquo;{payment.disputeMessage}&rdquo;</p>
                   )}
                 </div>
 

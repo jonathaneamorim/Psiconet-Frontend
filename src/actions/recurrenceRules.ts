@@ -1,5 +1,6 @@
 'use server';
 
+import type { OverlapSummary, RecurrenceOccurrenceOverlap } from '@/types/appointment';
 import { apiClient } from '@/services/api/apiClient';
 import { revalidatePath } from 'next/cache';
 import type { RecurrenceRuleCreateDTO, RecurrenceRuleDTO } from '@/types/recurrence';
@@ -9,12 +10,12 @@ import type { PaginatedResponse } from '@/types/connection';
 export async function createRecurrenceRuleAction(
   treatmentLinkId: string,
   dto: RecurrenceRuleCreateDTO
-): Promise<{ data?: RecurrenceRuleDTO; error?: string }> {
+): Promise<{ data?: RecurrenceRuleDTO; error?: string; code?: string; conflicts?: OverlapSummary[] }> {
   const result = await apiClient.post<RecurrenceRuleDTO>(
     `/treatment-links/${treatmentLinkId}/recurrence-rules`,
     dto
   );
-  if (result.error) return { error: result.error };
+  if (result.error) return { error: result.error, code: result.code, conflicts: result.conflicts as OverlapSummary[] | undefined };
 
   revalidatePath('/psychologist/appointments');
   revalidatePath('/patient/appointments');
@@ -58,4 +59,31 @@ export async function previewRecurrenceRuleAction(
 ): Promise<{ data?: string[]; error?: string }> {
   const params = new URLSearchParams({ from, to });
   return apiClient.get<string[]>(`/recurrence-rules/${ruleId}/preview?${params}`);
+}
+
+/* Rascunho da série: ocorrências dos próximos 90 dias que coincidem com outra consulta (só psicólogo) */
+export async function draftRecurrenceOverlapsAction(
+  treatmentLinkId: string,
+  dto: RecurrenceRuleCreateDTO
+): Promise<{ data?: RecurrenceOccurrenceOverlap[]; error?: string }> {
+  const result = await apiClient.post<RecurrenceOccurrenceOverlap[]>(
+    `/treatment-links/${encodeURIComponent(treatmentLinkId)}/recurrence-rules/overlaps`,
+    dto,
+    { background: true }
+  );
+  return result.error ? { error: result.error } : { data: result.data ?? [] };
+}
+
+/* Datas de uma série existente que coincidem com outra consulta, para marcar no calendário (só psicólogo) */
+export async function previewRecurrenceOverlapsAction(
+  ruleId: string,
+  from: string,
+  to: string
+): Promise<{ data?: RecurrenceOccurrenceOverlap[]; error?: string }> {
+  const params = new URLSearchParams({ from, to });
+  const result = await apiClient.get<RecurrenceOccurrenceOverlap[]>(
+    `/recurrence-rules/${encodeURIComponent(ruleId)}/preview/overlaps?${params}`,
+    { background: true }
+  );
+  return result.error ? { error: result.error } : { data: result.data ?? [] };
 }

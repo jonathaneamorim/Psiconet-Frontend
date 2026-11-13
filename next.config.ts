@@ -79,16 +79,6 @@ const nextConfig: NextConfig = {
       { source: "/call/:path*", headers: callHeaders },
     ];
   },
-  async redirects() {
-    return [
-      {
-        // temporario
-        source: '/pagina-source',
-        destination: '/pagina-destino',
-        permanent: true, 
-      },
-    ];
-  },
 };
 
 export default nextConfig;

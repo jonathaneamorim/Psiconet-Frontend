@@ -1,10 +1,11 @@
-import { getActiveConnectionsAction } from '@/actions/connections';
+import { getActiveConnectionsAction, getPendingRequestsAction, getSentRequestsAction } from '@/actions/connections';
+import { ConnectionRequestsPanel, type RequestsTab } from '@/components/Organism/ConnectionRequestsPanel';
 import { ConnectionList } from '@/components/Organism/ConnectionList';
 import { ROUTES } from '@/config/routes';
 
 export const metadata = {
   title: 'Minhas Conexões | Psiconet',
-  description: 'Gerencie suas conexões ativas na plataforma Psiconet.',
+  description: 'Gerencie suas conexões e solicitações de conexão na plataforma Psiconet.',
 };
 
 export default async function PatientConnectionsPage(props: {
@@ -13,7 +14,18 @@ export default async function PatientConnectionsPage(props: {
   const searchParams = await props.searchParams;
   const page = Math.max(0, Number(searchParams.page) || 0);
 
-  const { data, error } = await getActiveConnectionsAction(page, 10);
+  const tabParam = searchParams.aba;
+  const initialTab: RequestsTab | undefined =
+    tabParam === 'recebidas' || tabParam === 'enviadas' ? tabParam : undefined;
+
+  const [{ data, error }, received, sent] = await Promise.all([
+    getActiveConnectionsAction(page, 10),
+    getPendingRequestsAction(0, 50),
+    getSentRequestsAction(0, 50),
+  ]);
+  const requestsError = received.error || sent.error
+    ? 'Não foi possível carregar todas as solicitações. Recarregue a página.'
+    : undefined;
 
   return (
     <div className="w-full min-h-screen bg-slate-50 py-24 sm:py-32 px-4 sm:px-8">
@@ -25,6 +37,15 @@ export default async function PatientConnectionsPage(props: {
             Visualize e gerencie seus psicólogos conectados na plataforma.
           </p>
         </div>
+
+        <ConnectionRequestsPanel
+          received={received.data?.content ?? []}
+          sent={sent.data?.content ?? []}
+          receivedTotal={received.data?.page.totalElements ?? 0}
+          sentTotal={sent.data?.page.totalElements ?? 0}
+          initialTab={initialTab}
+          error={requestsError}
+        />
 
         {/* Stats bar */}
         {data && (

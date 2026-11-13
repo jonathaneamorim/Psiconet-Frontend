@@ -18,6 +18,11 @@ export function resolveNotificationRoute(
     return `/call/${referenceId}`;
   }
 
+  // Sobreposição na agenda: abre a consulta na agenda do psicólogo (o dia dela fica selecionado).
+  if (type === 'SCHEDULE_OVERLAP' && role === RoleEnum.PSYCHOLOGIST) {
+    return referenceId ? `/psychologist/appointments?consulta=${encodeURIComponent(referenceId)}` : '/psychologist/appointments';
+  }
+
   if (referenceType === 'TICKET') {
     if (role === RoleEnum.ADMIN) return referenceId ? `/admin/tickets/${referenceId}` : '/admin/tickets';
     return referenceId ? `/support/${referenceId}` : '/support';
@@ -33,6 +38,9 @@ export function resolveNotificationRoute(
   }
 
   if (role !== RoleEnum.PATIENT && role !== RoleEnum.PSYCHOLOGIST) return null;
+
+  // Pedido de conexão: abre direto a aba de solicitações recebidas (aceitar/recusar).
+  if (type === 'CONNECTION_REQUESTED') return `/${role}/connections?aba=recebidas#solicitacoes`;
 
   const routes: Record<string, string> = {
     APPOINTMENT: `/${role}/appointments`,

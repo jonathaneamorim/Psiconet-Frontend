@@ -1,5 +1,6 @@
 'use client';
 
+import { OverlapBadge } from '@/components/Atoms/OverlapBadge';
 import Link from 'next/link';
 import type { AppointmentDTO } from '@/types/appointment';
 import { AppointmentStatusBadge } from '@/components/Atoms/AppointmentStatusBadge';
@@ -57,6 +58,7 @@ export function AppointmentCard({
         </div>
 
         <div className="flex items-center gap-2">
+          {isPsychologist && appointment.hasOverlap && <OverlapBadge overlaps={appointment.overlappingAppointments} />}
           <MeetingTypeBadge type={appointment.meetingType} provider={appointment.meetingProvider} size="sm" />
           <AppointmentStatusBadge status={appointment.status} size="sm" />
         </div>
@@ -145,7 +147,7 @@ export function AppointmentCard({
             </svg>
             Cancelada por {appointment.cancelledBy === 'PATIENT' ? 'Paciente' : 'Psicólogo'}:
           </div>
-          <p className="pl-5 italic text-red-600">"{appointment.cancellationReason}"</p>
+          <p className="pl-5 italic text-red-600">&ldquo;{appointment.cancellationReason}&rdquo;</p>
         </div>
       )}
 

@@ -4,13 +4,15 @@ import { RoleEnum } from '@/enums/RoleEnum';
 
 // Mock do componente Link do Next.js
 jest.mock('next/link', () => {
-    return ({ children, href, className, title }: any) => {
+    const MockLink = ({ children, href, className, title }: { children: React.ReactNode; href: string; className?: string; title?: string }) => {
         return (
             <a href={href} className={className} title={title} data-testid={`link-${title || 'unknown'}`}>
                 {children}
             </a>
         );
     };
+    MockLink.displayName = 'MockLink';
+    return MockLink;
 });
 
 // Mock da action de logout

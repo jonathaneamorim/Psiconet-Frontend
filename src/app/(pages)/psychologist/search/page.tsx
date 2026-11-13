@@ -1,5 +1,6 @@
 import { searchPatientsAction } from '@/actions/profile';
 import { ProfileCard } from '@/components/Organism/ProfileCard';
+import type { UserProfile } from '@/types/profile';
 import { Pagination } from '@/components/Molecules/Pagination';
 
 export default async function PsychologistSearchPage(props: {
@@ -69,7 +70,7 @@ export default async function PsychologistSearchPage(props: {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {contentList.map((patient: any) => (
+            {contentList.map((patient: UserProfile) => (
               <ProfileCard key={patient.id} profile={patient} profileType="patient" />
             ))}
             
