@@ -39,6 +39,9 @@ export function resolveNotificationRoute(
 
   if (role !== RoleEnum.PATIENT && role !== RoleEnum.PSYCHOLOGIST) return null;
 
+  // Pedido de conexão: abre direto a aba de solicitações recebidas (aceitar/recusar).
+  if (type === 'CONNECTION_REQUESTED') return `/${role}/connections?aba=recebidas#solicitacoes`;
+
   const routes: Record<string, string> = {
     APPOINTMENT: `/${role}/appointments`,
     CONNECTION: `/${role}/connections`,

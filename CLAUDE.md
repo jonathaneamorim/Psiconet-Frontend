@@ -171,12 +171,15 @@ espelhados em `TICKET_LIMITS`; o backend impõe (3 abertos, intervalo, duplicida
 - `NotificationType` espelha o enum do backend, incluindo `VIDEO_SESSION_REMINDER`/`VIDEO_PARTICIPANT_JOINED` (clique ⇒ `/call/{id}`), `TICKET_REPLIED`, `TICKET_CLOSED`, `ADMIN_ANNOUNCEMENT`,
   `MEDICAL_RECORD_ACCESS_REQUESTED|GRANTED|DENIED` (obrigatórias, exibidas como "Sempre ativa" nas preferências).
 - Destino do clique centralizado em `lib/notificationRoutes.ts` (`referenceType` + `referenceId` + role).
+  `CONNECTION_REQUESTED` ⇒ `/{role}/connections?aba=recebidas#solicitacoes` (aceitar/recusar ali).
 - Polling do contador a cada 15 s; "marcar todas" usa `PATCH /notifications/read-all`.
 
 ## Sistema de Conexões
 
 Sistema social onde Pacientes e Psicólogos se conectam:
 - Listagem otimista: Uso de `ConnectionContext` para reagir em real-time a mudanças de status (Conectar, Remover, etc) sem reload.
+- **Solicitações pendentes** na página de conexões (`ConnectionRequestsPanel`, âncora `#solicitacoes`, `?aba=recebidas|enviadas`):
+  recebidas (`GET /connections/pending`: aceitar/recusar) e enviadas (`GET /connections/sent`: cancelar = `DELETE /connections/{id}`).
 - `useConnectionActions`: Hook encapsulador que abstrai as chamadas HTTP e controla toasts/loading.
 - As Server Actions de perfis rodam em paralelo para buscar os dados de perfil + checar o estado de conexão com o remetente atual (via Promise.all).
 - Cada conexão ativa carrega um `TreatmentLink` (`treatmentLinkId` + `defaultPrice` em `ConnectedUserDTO`). O psicólogo edita o preço padrão do vínculo direto no `ConnectionCard` (botão "Editar Preço" → `EditTreatmentPriceModal` → `updateTreatmentLinkPriceAction`), e esse valor pré-preenche o campo de preço ao criar um novo agendamento.

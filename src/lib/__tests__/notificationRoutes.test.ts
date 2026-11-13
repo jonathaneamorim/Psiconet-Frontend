@@ -23,4 +23,12 @@ describe('resolveNotificationRoute', () => {
     expect(resolveNotificationRoute({ type: 'SCHEDULE_OVERLAP', referenceType: 'APPOINTMENT', referenceId: 'apt-1' }, RoleEnum.PSYCHOLOGIST))
       .toBe('/psychologist/appointments?consulta=apt-1');
   });
+  it('pedido de conexão abre a aba de solicitações recebidas', () => {
+    expect(resolveNotificationRoute({ type: 'CONNECTION_REQUESTED', referenceType: 'CONNECTION', referenceId: 'c-1' }, RoleEnum.PATIENT))
+      .toBe('/patient/connections?aba=recebidas#solicitacoes');
+    expect(resolveNotificationRoute({ type: 'CONNECTION_REQUESTED', referenceType: 'CONNECTION', referenceId: 'c-1' }, RoleEnum.PSYCHOLOGIST))
+      .toBe('/psychologist/connections?aba=recebidas#solicitacoes');
+    expect(resolveNotificationRoute({ type: 'CONNECTION_ACCEPTED', referenceType: 'CONNECTION' }, RoleEnum.PATIENT))
+      .toBe('/patient/connections');
+  });
 });
